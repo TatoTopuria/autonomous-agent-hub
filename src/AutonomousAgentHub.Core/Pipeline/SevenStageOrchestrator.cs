@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AutonomousAgentHub.Core.Configuration;
 using AutonomousAgentHub.Core.Contracts;
 using AutonomousAgentHub.Core.Infrastructure;
@@ -29,13 +30,15 @@ public sealed class SevenStageOrchestrator(
     Stage4ExecutorAgent stage4Executor,
     Stage5TesterAgent stage5Tester,
     Stage6AuditorAgent stage6Auditor,
-    Stage7DeployerAgent stage7Deployer)
+    Stage7DeployerAgent stage7Deployer,
+    PipelineTelemetryLogger? telemetryLogger = null)
 {
     public async Task<PipelineExecutionSummary> RunAsync(
         bool isDryRun = false,
         string? repositoryOverride = null,
         CancellationToken cancellationToken = default)
     {
+        Stopwatch runStopwatch = Stopwatch.StartNew();
         RotationState currentState = await stateLedgerManager.LoadRotationStateAsync(cancellationToken).ConfigureAwait(false);
         SelectedRepositoryTarget selectedTarget = StateLedgerManager.SelectNextRepository(
             config.Repositories,
@@ -54,7 +57,15 @@ public sealed class SevenStageOrchestrator(
 
         if (isDryRun)
         {
-            return ExecuteDryRunVerification(selectedTarget, currentState, ledger);
+            PipelineExecutionSummary dryRunSummary = ExecuteDryRunVerification(selectedTarget, currentState, ledger);
+            runStopwatch.Stop();
+            await EmitTelemetryIfConfiguredAsync(
+                dryRunSummary,
+                runStopwatch.ElapsedMilliseconds,
+                selfHealingAttempts: 0,
+                auditQualityScore: null,
+                cancellationToken).ConfigureAwait(false);
+            return dryRunSummary;
         }
 
         // Clone target repository into isolated workspace (/tmp/workspace/{owner}_{repo})
@@ -86,13 +97,22 @@ public sealed class SevenStageOrchestrator(
 
             await stateLedgerManager.AdvanceRotationStateAsync(selectedTarget, cancellationToken).ConfigureAwait(false);
 
-            return new PipelineExecutionSummary(
+            PipelineExecutionSummary stage2Summary = new(
                 Succeeded: false,
                 IsDryRun: false,
                 SelectedRepository: repo.FullName,
                 RotationIndex: selectedTarget.RotationIndex,
                 FinalStageReached: "Stage2Finder",
                 StatusMessage: reason);
+
+            runStopwatch.Stop();
+            await EmitTelemetryIfConfiguredAsync(
+                stage2Summary,
+                runStopwatch.ElapsedMilliseconds,
+                selfHealingAttempts: 0,
+                auditQualityScore: null,
+                cancellationToken).ConfigureAwait(false);
+            return stage2Summary;
         }
 
         // Stage 3: Planner (Safe High-Leverage Task Formulation)
@@ -135,13 +155,22 @@ public sealed class SevenStageOrchestrator(
 
             await stateLedgerManager.AdvanceRotationStateAsync(selectedTarget, cancellationToken).ConfigureAwait(false);
 
-            return new PipelineExecutionSummary(
+            PipelineExecutionSummary stage5Summary = new(
                 Succeeded: false,
                 IsDryRun: false,
                 SelectedRepository: repo.FullName,
                 RotationIndex: selectedTarget.RotationIndex,
                 FinalStageReached: "Stage5Tester",
                 StatusMessage: reason);
+
+            runStopwatch.Stop();
+            await EmitTelemetryIfConfiguredAsync(
+                stage5Summary,
+                runStopwatch.ElapsedMilliseconds,
+                selfHealingAttempts: testReport.TotalAttempts,
+                auditQualityScore: null,
+                cancellationToken).ConfigureAwait(false);
+            return stage5Summary;
         }
 
         // Stage 6: Auditor (Independent Quality & Compliance Gate)
@@ -172,13 +201,22 @@ public sealed class SevenStageOrchestrator(
 
             await stateLedgerManager.AdvanceRotationStateAsync(selectedTarget, cancellationToken).ConfigureAwait(false);
 
-            return new PipelineExecutionSummary(
+            PipelineExecutionSummary stage6Summary = new(
                 Succeeded: false,
                 IsDryRun: false,
                 SelectedRepository: repo.FullName,
                 RotationIndex: selectedTarget.RotationIndex,
                 FinalStageReached: "Stage6Auditor",
                 StatusMessage: reason);
+
+            runStopwatch.Stop();
+            await EmitTelemetryIfConfiguredAsync(
+                stage6Summary,
+                runStopwatch.ElapsedMilliseconds,
+                selfHealingAttempts: testReport.TotalAttempts,
+                auditQualityScore: auditVerdict.QualityScore,
+                cancellationToken).ConfigureAwait(false);
+            return stage6Summary;
         }
 
         // Stage 7: Deployer (Branch Push, PR Creation & State Ledger Update)
@@ -193,7 +231,7 @@ public sealed class SevenStageOrchestrator(
             auditVerdict,
             cancellationToken).ConfigureAwait(false);
 
-        return new PipelineExecutionSummary(
+        PipelineExecutionSummary successSummary = new(
             Succeeded: true,
             IsDryRun: false,
             SelectedRepository: repo.FullName,
@@ -201,6 +239,45 @@ public sealed class SevenStageOrchestrator(
             FinalStageReached: "Stage7Deployer",
             StatusMessage: $"Successfully opened Pull Request #{prResult.Number}: {prResult.HtmlUrl}",
             PullRequest: prResult);
+
+        runStopwatch.Stop();
+        await EmitTelemetryIfConfiguredAsync(
+            successSummary,
+            runStopwatch.ElapsedMilliseconds,
+            selfHealingAttempts: testReport.TotalAttempts,
+            auditQualityScore: auditVerdict.QualityScore,
+            cancellationToken).ConfigureAwait(false);
+
+        return successSummary;
+    }
+
+    private async Task EmitTelemetryIfConfiguredAsync(
+        PipelineExecutionSummary summary,
+        long durationMs,
+        int selfHealingAttempts,
+        int? auditQualityScore,
+        CancellationToken cancellationToken)
+    {
+        if (telemetryLogger is null)
+        {
+            return;
+        }
+
+        PipelineTelemetryRecord record = new()
+        {
+            SelectedRepository = summary.SelectedRepository,
+            RotationIndex = summary.RotationIndex,
+            IsDryRun = summary.IsDryRun,
+            Succeeded = summary.Succeeded,
+            FinalStageReached = summary.FinalStageReached,
+            DurationMs = durationMs,
+            SelfHealingAttempts = selfHealingAttempts,
+            AuditQualityScore = auditQualityScore,
+            PullRequestUrl = summary.PullRequest?.HtmlUrl,
+            StatusMessage = summary.StatusMessage
+        };
+
+        await telemetryLogger.AppendRecordAsync(record, cancellationToken).ConfigureAwait(false);
     }
 
     private PipelineExecutionSummary ExecuteDryRunVerification(

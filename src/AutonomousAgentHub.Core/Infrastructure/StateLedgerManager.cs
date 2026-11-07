@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AutonomousAgentHub.Core.Configuration;
 using AutonomousAgentHub.Core.Contracts;
+using AutonomousAgentHub.Core.Serialization;
 
 namespace AutonomousAgentHub.Core.Infrastructure;
 
@@ -21,7 +22,8 @@ public sealed class StateLedgerManager
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
-        WriteIndented = true
+        WriteIndented = true,
+        TypeInfoResolver = HubJsonSerializerContext.Default
     };
 
     private readonly string _rotationStateFilePath;
@@ -116,20 +118,14 @@ public sealed class StateLedgerManager
     }
 
     /// <summary>
-    /// Persists updated rotation state to <c>state/rotation-state.json</c>.
+    /// Persists updated rotation state atomically to <c>state/rotation-state.json</c>.
     /// </summary>
     public async Task SaveRotationStateAsync(RotationState state, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(state);
 
-        string? parentDir = Path.GetDirectoryName(_rotationStateFilePath);
-        if (!string.IsNullOrWhiteSpace(parentDir))
-        {
-            Directory.CreateDirectory(parentDir);
-        }
-
         string json = JsonSerializer.Serialize(state, JsonOptions);
-        await File.WriteAllTextAsync(_rotationStateFilePath, json + Environment.NewLine, cancellationToken).ConfigureAwait(false);
+        await WriteFileAtomicallyAsync(_rotationStateFilePath, json + Environment.NewLine, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -198,7 +194,7 @@ public sealed class StateLedgerManager
     }
 
     /// <summary>
-    /// Saves the updated repository memory ledger to <c>state/ledgers/{owner}__{repo}.json</c>.
+    /// Saves the updated repository memory ledger atomically to <c>state/ledgers/{owner}__{repo}.json</c>.
     /// </summary>
     public async Task SaveRepoLedgerAsync(
         RepositoryEntry repository,
@@ -208,10 +204,42 @@ public sealed class StateLedgerManager
         ArgumentNullException.ThrowIfNull(repository);
         ArgumentNullException.ThrowIfNull(ledger);
 
-        Directory.CreateDirectory(_ledgersDirectoryPath);
         string filePath = GetLedgerFilePath(repository);
         string json = JsonSerializer.Serialize(ledger, JsonOptions);
-        await File.WriteAllTextAsync(filePath, json + Environment.NewLine, cancellationToken).ConfigureAwait(false);
+        await WriteFileAtomicallyAsync(filePath, json + Environment.NewLine, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task WriteFileAtomicallyAsync(
+        string targetFilePath,
+        string content,
+        CancellationToken cancellationToken)
+    {
+        string? parentDir = Path.GetDirectoryName(targetFilePath);
+        if (!string.IsNullOrWhiteSpace(parentDir))
+        {
+            Directory.CreateDirectory(parentDir);
+        }
+
+        string tempFilePath = $"{targetFilePath}.{Guid.NewGuid():N}.tmp";
+        try
+        {
+            await File.WriteAllTextAsync(tempFilePath, content, cancellationToken).ConfigureAwait(false);
+            File.Move(tempFilePath, targetFilePath, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(tempFilePath))
+            {
+                try
+                {
+                    File.Delete(tempFilePath);
+                }
+                catch
+                {
+                    // Ignore best-effort temp cleanup
+                }
+            }
+        }
     }
 
     /// <summary>

@@ -25,13 +25,14 @@ public static class Program
 
             HubConfig config = await HubConfig.LoadAsync(configPath, cts.Token).ConfigureAwait(false);
             StateLedgerManager stateLedgerManager = new(stateDir);
+            PipelineTelemetryLogger telemetryLogger = new(stateDir);
 
             using HttpClient httpClient = new()
             {
                 Timeout = TimeSpan.FromMinutes(3)
             };
 
-            GeminiFreeTierClient geminiClient = new(
+            using GeminiFreeTierClient geminiClient = new(
                 httpClient,
                 primaryModel: config.DefaultModel,
                 fallbackModel: config.FallbackModel,
@@ -59,7 +60,8 @@ public static class Program
                 stage4,
                 stage5,
                 stage6,
-                stage7);
+                stage7,
+                telemetryLogger);
 
             PipelineExecutionSummary summary = await orchestrator.RunAsync(
                 isDryRun: options.IsDryRun,

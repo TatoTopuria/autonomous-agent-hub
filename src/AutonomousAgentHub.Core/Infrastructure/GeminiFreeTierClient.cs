@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using AutonomousAgentHub.Core.Serialization;
 
 namespace AutonomousAgentHub.Core.Infrastructure;
 
@@ -23,7 +24,7 @@ public interface IGeminiClient
 /// exponential backoff + jitter (15s, 35s, 70s) on HTTP 429/503, automatic model fallback
 /// (<c>gemini-2.5-pro</c> -> <c>gemini-2.5-flash</c>), Google Search Grounding, and structured JSON deserialization.
 /// </summary>
-public sealed class GeminiFreeTierClient : IGeminiClient
+public sealed class GeminiFreeTierClient : IGeminiClient, IDisposable
 {
     private static readonly int[] RetryBackoffSeconds = [15, 35, 70];
 
@@ -33,7 +34,8 @@ public sealed class GeminiFreeTierClient : IGeminiClient
         ReadCommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true,
         WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        TypeInfoResolver = HubJsonSerializerContext.Default
     };
 
     private readonly HttpClient _httpClient;
@@ -44,6 +46,7 @@ public sealed class GeminiFreeTierClient : IGeminiClient
     private readonly int _maxOutputTokens;
     private DateTimeOffset _lastRequestCompletedUtc = DateTimeOffset.MinValue;
     private readonly SemaphoreSlim _rateLimitLock = new(1, 1);
+    private bool _disposed;
 
     public GeminiFreeTierClient(
         HttpClient httpClient,
@@ -142,7 +145,9 @@ public sealed class GeminiFreeTierClient : IGeminiClient
                     activeModel = _fallbackModel;
                 }
 
-                int baseDelaySec = RetryBackoffSeconds[attempt];
+                int baseDelaySec = ex.RetryAfterDelay.HasValue
+                    ? (int)Math.Clamp(ex.RetryAfterDelay.Value.TotalSeconds, 1, 120)
+                    : RetryBackoffSeconds[attempt];
                 int jitterMs = Random.Shared.Next(250, 2250);
                 TimeSpan backoff = TimeSpan.FromSeconds(baseDelaySec) + TimeSpan.FromMilliseconds(jitterMs);
 
@@ -204,9 +209,11 @@ public sealed class GeminiFreeTierClient : IGeminiClient
 
         if (response.StatusCode is HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable)
         {
+            TimeSpan? retryAfter = TryParseRetryAfterHeader(response);
             throw new GeminiQuotaOrTransientException(
                 response.StatusCode,
-                $"Gemini API returned {(int)response.StatusCode}: {Truncate(responseBody, 400)}");
+                $"Gemini API returned {(int)response.StatusCode}: {Truncate(responseBody, 400)}",
+                retryAfter);
         }
 
         if (!response.IsSuccessStatusCode)
@@ -367,13 +374,59 @@ public sealed class GeminiFreeTierClient : IGeminiClient
         return sanitized;
     }
 
+    /// <summary>
+    /// Parses the standard HTTP <c>Retry-After</c> response header (delta-seconds or HTTP-date per IETF RFC 9110 Section 10.2.3).
+    /// </summary>
+    public static TimeSpan? TryParseRetryAfterHeader(HttpResponseMessage response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+
+        var retryAfter = response.Headers.RetryAfter;
+        if (retryAfter is null)
+        {
+            return null;
+        }
+
+        if (retryAfter.Delta.HasValue && retryAfter.Delta.Value > TimeSpan.Zero)
+        {
+            return TimeSpan.FromSeconds(Math.Clamp(retryAfter.Delta.Value.TotalSeconds, 1, 120));
+        }
+
+        if (retryAfter.Date.HasValue)
+        {
+            TimeSpan diff = retryAfter.Date.Value - DateTimeOffset.UtcNow;
+            if (diff > TimeSpan.Zero)
+            {
+                return TimeSpan.FromSeconds(Math.Clamp(diff.TotalSeconds, 1, 120));
+            }
+        }
+
+        return null;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _rateLimitLock.Dispose();
+        _disposed = true;
+    }
+
     private static string Truncate(string value, int maxLength) =>
         value.Length <= maxLength ? value : string.Concat(value.AsSpan(0, maxLength), "...");
 
-    private sealed class GeminiQuotaOrTransientException(HttpStatusCode statusCode, string message)
+    private sealed class GeminiQuotaOrTransientException(
+        HttpStatusCode statusCode,
+        string message,
+        TimeSpan? retryAfterDelay = null)
         : Exception(message)
     {
         public HttpStatusCode StatusCode { get; } = statusCode;
+
+        public TimeSpan? RetryAfterDelay { get; } = retryAfterDelay;
     }
 }
 

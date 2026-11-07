@@ -1,0 +1,67 @@
+name: Autonomous Self-Evolution & Verification
+
+on:
+  schedule:
+    # Runs weekly on Mondays at 07:00 UTC (11:00 AM Asia/Tbilisi)
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run verification & dry-run without external target mutations'
+        required: false
+        default: true
+        type: boolean
+      target_repository:
+        description: 'Optional target repository override (e.g., Owner/Repo)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: autonomous-self-evolution
+  cancel-in-progress: false
+
+jobs:
+  self-evolve-and-verify:
+    name: Execute Delta-First Self-Evolution & Verification Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout AutonomousAgentHub (main)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 8.0 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Execute Autonomous Evolution Runner
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GH_ORCHESTRATOR_PAT: ${{ secrets.GH_ORCHESTRATOR_PAT }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-2.5-flash' }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'true' }}
+          TARGET_REPOSITORY: ${{ github.event.inputs.target_repository || '' }}
+        run: |
+          chmod +x scripts/autonomous-evolution-runner.sh
+          bash scripts/autonomous-evolution-runner.sh
+
+      - name: Commit & Push Updated Evolution State Ledger
+        if: always()
+        run: |
+          git config user.name "Autonomous Evolution Hub Bot"
+          git config user.email "autonomous-agent-hub@users.noreply.github.com"
+          git add docs/autonomous-evolution/state-ledger.json state/rotation-state.json state/ledgers/ state/telemetry/
+          if git diff --staged --quiet; then
+            echo "No state ledger changes to commit."
+          else
+            git commit -m "chore(evolution): update autonomous evolution state ledger [skip ci]"
+            git push origin HEAD:main
+          fi

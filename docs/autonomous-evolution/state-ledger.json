@@ -1,0 +1,78 @@
+{
+  "repository": "TatoTopuria/autonomous-agent-hub",
+  "defaultBranch": "main",
+  "lastInspectedCommitSha": "0763989",
+  "lastRunUtc": "2026-11-07T10:31:00Z",
+  "completedTier1Evolutions": [
+    {
+      "id": "T1-001",
+      "title": "Implement IDisposable on GeminiFreeTierClient and honor HTTP Retry-After headers on 429/503 responses",
+      "evidenceAuthority": "IETF RFC 9110 & Microsoft Learn (.NET Fundamentals)",
+      "documentTitle": "RFC 9110 Section 10.2.3 (Retry-After) & CA1001: Types that own disposable fields should be disposable",
+      "publicationYear": 2025,
+      "evidenceUrl": "https://www.rfc-editor.org/rfc/rfc9110#section-10.2.3",
+      "modifiedFiles": [
+        "src/AutonomousAgentHub.Core/Infrastructure/GeminiFreeTierClient.cs",
+        "src/AutonomousAgentHub.Core/Program.cs"
+      ],
+      "completedAtUtc": "2026-11-07T10:31:00Z"
+    },
+    {
+      "id": "T1-002",
+      "title": "Enforce crash-safe atomic file persistence in StateLedgerManager using temporary sibling files and File.Move overwrite",
+      "evidenceAuthority": "Microsoft Learn (.NET File System Documentation)",
+      "documentTitle": "File.Move(String, String, Boolean) Method — Atomic File Replacement",
+      "publicationYear": 2025,
+      "evidenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.io.file.move",
+      "modifiedFiles": [
+        "src/AutonomousAgentHub.Core/Infrastructure/StateLedgerManager.cs"
+      ],
+      "completedAtUtc": "2026-11-07T10:31:00Z"
+    },
+    {
+      "id": "T1-003",
+      "title": "Add comprehensive 7-stage orchestrator, self-healing, path-traversal, and secret-scanner unit test suite",
+      "evidenceAuthority": "OWASP Foundation & Microsoft Learn (.NET Testing)",
+      "documentTitle": "OWASP Path Traversal Prevention & Unit Testing C# with xUnit and .NET Test",
+      "publicationYear": 2025,
+      "evidenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-with-dotnet-test",
+      "modifiedFiles": [
+        "tests/AutonomousAgentHub.Tests/PipelineOrchestrationAndGuardrailTests.cs"
+      ],
+      "completedAtUtc": "2026-11-07T10:31:00Z"
+    }
+  ],
+  "completedTier2Proposals": [
+    {
+      "id": "T2-001",
+      "title": "Add System.Text.Json compile-time source generation context (HubJsonSerializerContext) across all 7-stage contracts and state models",
+      "approvalStatus": "APPROVED_BY_USER",
+      "evidenceAuthority": "Microsoft Learn (.NET Serialization)",
+      "documentTitle": "How to use source generation in System.Text.Json",
+      "publicationYear": 2025,
+      "evidenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/source-generation",
+      "modifiedFiles": [
+        "src/AutonomousAgentHub.Core/Serialization/HubJsonSerializerContext.cs",
+        "src/AutonomousAgentHub.Core/Infrastructure/GeminiFreeTierClient.cs",
+        "src/AutonomousAgentHub.Core/Infrastructure/StateLedgerManager.cs"
+      ],
+      "completedAtUtc": "2026-11-07T10:31:00Z"
+    },
+    {
+      "id": "T2-002",
+      "title": "Add structured append-only JSONL pipeline execution telemetry logger (PipelineTelemetryLogger)",
+      "approvalStatus": "APPROVED_BY_USER",
+      "evidenceAuthority": "Microsoft Learn (.NET Observability & Structured Logging)",
+      "documentTitle": "Observability and Structured Telemetry in .NET",
+      "publicationYear": 2025,
+      "evidenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/diagnostics/observability-with-otel",
+      "modifiedFiles": [
+        "src/AutonomousAgentHub.Core/Infrastructure/PipelineTelemetryLogger.cs",
+        "src/AutonomousAgentHub.Core/Pipeline/SevenStageOrchestrator.cs",
+        "src/AutonomousAgentHub.Core/Program.cs"
+      ],
+      "completedAtUtc": "2026-11-07T10:31:00Z"
+    }
+  ],
+  "pendingTier2Proposals": []
+}
