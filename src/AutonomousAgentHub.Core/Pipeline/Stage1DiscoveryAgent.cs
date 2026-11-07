@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Json;
 using AutonomousAgentHub.Core.Configuration;
 using AutonomousAgentHub.Core.Contracts;
 using AutonomousAgentHub.Core.Infrastructure;
@@ -9,13 +8,18 @@ namespace AutonomousAgentHub.Core.Pipeline;
 /// <summary>
 /// Stage 1: Strictly Read-Only Repository &amp; Domain Discovery Agent.
 /// Inspects the cloned target repository without modifying any file, maps topology and recent Git history,
-/// auto-detects the polyglot build stack, and synthesizes <see cref="Stage1DiscoveryArtifact"/>.
+/// extracts structural AST symbol summaries, auto-detects the polyglot build stack, and synthesizes <see cref="Stage1DiscoveryArtifact"/>.
 /// </summary>
 public sealed class Stage1DiscoveryAgent(
     IGeminiClient geminiClient,
     IBuildTestRunner buildTestRunner,
-    IGitWorkspaceManager gitWorkspaceManager)
+    IGitWorkspaceManager gitWorkspaceManager,
+    ISkillRegistry? skillRegistry = null,
+    ExperientialMemoryManager? experientialMemoryManager = null,
+    IMcpToolManager? mcpToolManager = null)
 {
+    private static readonly SkillRegistry DefaultSkillRegistry = new();
+
     private static readonly HashSet<string> IgnoredDirNames = new(StringComparer.OrdinalIgnoreCase)
     {
         ".git", "node_modules", "bin", "obj", ".venv", "venv", "target", "build", "dist", ".gradle", ".vs", ".idea"
@@ -72,19 +76,27 @@ public sealed class Stage1DiscoveryAgent(
             relativeFiles,
             cancellationToken).ConfigureAwait(false);
 
-        string systemInstruction =
+        string baseSystemInstruction =
             """
             You are Stage 1 (Discovery Agent) of the Autonomous Evolution Hub.
             You operate in STRICTLY READ-ONLY mode. Your objective is to analyze the target repository's topology,
             manifests, recent commit history, and source code snapshots to produce a comprehensive JSON Stage1DiscoveryArtifact.
             Identify:
             1. domainPurpose: Clear domain purpose of the repository.
-            2. architecturalStyle: Architectural pattern in use (e.g., Clean Architecture, Hexagonal, Layered Spring Boot, FastAPI Service, Express/NestJS Gateway).
+            2. architecturalStyle: Architectural pattern in use (e.g., Clean Architecture, Hexagonal, Layered Spring Boot, FastAPI Service, Express/NestJS Gateway, Cloud-Native DevOps).
             3. dataAndControlFlows: Key request/data/control flow paths through the system.
             4. criticalBusinessInvariants: Non-negotiable business and domain invariants that must NEVER be violated by any code change.
             5. candidateFilesForInspection: Up to 8 high-leverage source/test files suitable for safe improvements.
             Return ONLY valid JSON matching the Stage1DiscoveryArtifact contract.
             """;
+
+        string detectedStackName = stack.StackType.ToString();
+        string? experientialInjection = experientialMemoryManager?.BuildStagePromptInjection("Stage1Discovery", detectedStackName);
+        string systemInstruction = (skillRegistry ?? DefaultSkillRegistry).ComposeStageSystemInstruction(
+            baseSystemInstruction,
+            "stage1-discovery-ast",
+            detectedStackName,
+            experientialInjection);
 
         StringBuilder promptBuilder = new();
         promptBuilder.AppendLine($"Repository: {repository.FullName}");
@@ -92,6 +104,17 @@ public sealed class Stage1DiscoveryAgent(
         promptBuilder.AppendLine($"Auto-Detected Stack: {stack.StackType} ({stack.DisplayName})");
         promptBuilder.AppendLine($"Build Command: {stack.BuildCommand}");
         promptBuilder.AppendLine($"Test Command: {stack.TestCommand}");
+
+        if (mcpToolManager is not null)
+        {
+            string mcpSummary = mcpToolManager.BuildStageMcpContextSummary("Stage1Discovery", workspacePath);
+            if (!string.IsNullOrWhiteSpace(mcpSummary))
+            {
+                promptBuilder.AppendLine();
+                promptBuilder.AppendLine(mcpSummary);
+            }
+        }
+
         promptBuilder.AppendLine();
         promptBuilder.AppendLine("Directory Tree Summary:");
         foreach (string path in relativeFiles.Take(120))
@@ -147,6 +170,73 @@ public sealed class Stage1DiscoveryAgent(
             RecentGitCommits = recentCommits,
             CandidateFilesForInspection = enrichedSnapshots
         };
+    }
+
+    /// <summary>
+    /// Extracts structural type and method signature headers from source code so truncated files retain complete API visibility.
+    /// </summary>
+    public static string ExtractStructuralSymbolSummary(string content, int maxSignatures = 35)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return string.Empty;
+        }
+
+        List<string> symbols = [];
+        string[] lines = content.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        foreach (string line in lines)
+        {
+            if (symbols.Count >= maxSignatures)
+            {
+                break;
+            }
+
+            if (line.StartsWith("//", StringComparison.Ordinal) ||
+                line.StartsWith('#') ||
+                line.StartsWith("/*", StringComparison.Ordinal) ||
+                line.StartsWith('*'))
+            {
+                continue;
+            }
+
+            if (line.Contains("class ", StringComparison.Ordinal) ||
+                line.Contains("interface ", StringComparison.Ordinal) ||
+                line.Contains("record ", StringComparison.Ordinal) ||
+                line.Contains("enum ", StringComparison.Ordinal) ||
+                line.StartsWith("public ", StringComparison.Ordinal) ||
+                line.StartsWith("protected ", StringComparison.Ordinal) ||
+                line.StartsWith("internal ", StringComparison.Ordinal) ||
+                line.StartsWith("def ", StringComparison.Ordinal) ||
+                line.StartsWith("async def ", StringComparison.Ordinal) ||
+                line.StartsWith("export function ", StringComparison.Ordinal) ||
+                line.StartsWith("export async function ", StringComparison.Ordinal))
+            {
+                string signature = line.TrimEnd('{', ' ');
+                if (signature.Length > 180)
+                {
+                    signature = signature[..180] + "...";
+                }
+
+                symbols.Add(signature);
+            }
+        }
+
+        return symbols.Count == 0
+            ? string.Empty
+            : "// [STRUCTURAL SYMBOL MAP]\n// " + string.Join("\n// ", symbols) + "\n";
+    }
+
+    private static string BuildSnapshotExcerpt(string content, int maxChars)
+    {
+        if (content.Length <= maxChars)
+        {
+            return content;
+        }
+
+        string symbolHeader = ExtractStructuralSymbolSummary(content);
+        int remainingBudget = Math.Max(1000, maxChars - symbolHeader.Length);
+        return $"{symbolHeader}{content[..remainingBudget]}";
     }
 
     private static async Task<List<InspectedFileSnapshot>> LoadCandidateSnapshotsAsync(
@@ -207,7 +297,7 @@ public sealed class Stage1DiscoveryAgent(
             {
                 RelativePath = relPath,
                 ReasonForSelection = reason,
-                ContentExcerpt = content.Length <= 4000 ? content : content[..4000]
+                ContentExcerpt = BuildSnapshotExcerpt(content, maxChars: 4000)
             });
         }
 
@@ -243,7 +333,7 @@ public sealed class Stage1DiscoveryAgent(
                     ReasonForSelection = string.IsNullOrWhiteSpace(req.ReasonForSelection)
                         ? "Identified by Discovery Agent for deep inspection"
                         : req.ReasonForSelection,
-                    ContentExcerpt = content.Length <= 6000 ? content : content[..6000]
+                    ContentExcerpt = BuildSnapshotExcerpt(content, maxChars: 6000)
                 };
             }
         }
@@ -319,7 +409,7 @@ public sealed class Stage1DiscoveryAgent(
                name.StartsWith("application.", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool IsArchitecturalEntrypoint(string relativePath)
+    public static bool IsArchitecturalEntrypoint(string relativePath)
     {
         string name = Path.GetFileName(relativePath);
         return string.Equals(name, "Program.cs", StringComparison.OrdinalIgnoreCase) ||
@@ -329,6 +419,15 @@ public sealed class Stage1DiscoveryAgent(
                name.EndsWith("Controller.java", StringComparison.OrdinalIgnoreCase) ||
                name.EndsWith("Service.cs", StringComparison.OrdinalIgnoreCase) ||
                name.EndsWith("Service.java", StringComparison.OrdinalIgnoreCase) ||
+               name.EndsWith("Handler.cs", StringComparison.OrdinalIgnoreCase) ||
+               name.EndsWith("Handler.java", StringComparison.OrdinalIgnoreCase) ||
+               name.EndsWith("Repository.cs", StringComparison.OrdinalIgnoreCase) ||
+               name.EndsWith("Repository.java", StringComparison.OrdinalIgnoreCase) ||
+               name.EndsWith("Validator.cs", StringComparison.OrdinalIgnoreCase) ||
+               name.Contains("router", StringComparison.OrdinalIgnoreCase) ||
+               relativePath.EndsWith(".tf", StringComparison.OrdinalIgnoreCase) ||
+               name.StartsWith("docker-compose", StringComparison.OrdinalIgnoreCase) ||
+               name.StartsWith("prometheus", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(name, "main.py", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(name, "app.py", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(name, "index.ts", StringComparison.OrdinalIgnoreCase) ||
@@ -342,4 +441,3 @@ public sealed class Stage1DiscoveryAgent(
                relativePath.Contains("spec", StringComparison.OrdinalIgnoreCase);
     }
 }
-

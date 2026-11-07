@@ -54,7 +54,7 @@ public sealed class GeminiFreeTierClient : IGeminiClient, IDisposable
         string? primaryModel = null,
         string? fallbackModel = null,
         int interStageDelaySeconds = 6,
-        int maxOutputTokens = 8192)
+        int maxOutputTokens = 16384)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         _httpClient = httpClient;

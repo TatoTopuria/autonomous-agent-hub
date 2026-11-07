@@ -26,6 +26,12 @@ namespace AutonomousAgentHub.Core.Serialization;
 [JsonSerializable(typeof(Stage5TestReportArtifact))]
 [JsonSerializable(typeof(Stage6AuditVerdictArtifact))]
 [JsonSerializable(typeof(PipelineTelemetryRecord))]
+[JsonSerializable(typeof(ExperientialMemoryState))]
+[JsonSerializable(typeof(PrOutcomeSummary))]
+[JsonSerializable(typeof(LearnedHeuristicRule))]
+[JsonSerializable(typeof(ForbiddenAntiPatternRule))]
+[JsonSerializable(typeof(McpRegistryConfig))]
+[JsonSerializable(typeof(McpServerDescriptor))]
 public partial class HubJsonSerializerContext : JsonSerializerContext
 {
 }

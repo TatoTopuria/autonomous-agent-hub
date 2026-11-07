@@ -6,8 +6,9 @@ namespace AutonomousAgentHub.Core.Pipeline;
 
 /// <summary>
 /// Stage 5: Polyglot Build, Regression Test &amp; 3x Self-Healing Agent (Tester).
-/// Runs the repository's build and test suite, invokes <see cref="Stage4ExecutorAgent"/> up to 3 total attempts
-/// with compiler/test failure traces on errors, and triggers a hard workspace reset if all 3 attempts fail.
+/// Runs the repository's build and test suite, extracts structured compiler/test diagnostics via
+/// <see cref="StackTraceDiagnosticParser"/>, invokes <see cref="Stage4ExecutorAgent"/> up to 3 total attempts
+/// on errors, and triggers a hard workspace reset if all 3 attempts fail.
 /// </summary>
 public sealed class Stage5TesterAgent(
     IBuildTestRunner buildTestRunner,
@@ -71,11 +72,7 @@ public sealed class Stage5TesterAgent(
 
             if (attempt < _maxAttempts)
             {
-                string failureTrace =
-                    $"Attempt {attempt} failed ({attemptResult.FailureSummary}).\n" +
-                    $"Exit Code: {attemptResult.ExitCode}\n" +
-                    $"--- STDOUT ---\n{attemptResult.StandardOutput}\n" +
-                    $"--- STDERR ---\n{attemptResult.StandardError}";
+                string failureTrace = StackTraceDiagnosticParser.BuildFocusedFailureTrace(attemptResult);
 
                 Console.WriteLine($"[Stage 5: Tester] Triggering Self-Healing Iteration {attempt + 1}/{_maxAttempts} via Stage 4 Executor...");
                 currentExecution = await executorAgent.ExecuteAsync(
@@ -107,4 +104,3 @@ public sealed class Stage5TesterAgent(
         return (failedReport, currentExecution);
     }
 }
-

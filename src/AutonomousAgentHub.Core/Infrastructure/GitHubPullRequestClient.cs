@@ -17,7 +17,15 @@ public sealed record PullRequestCreationResult(
     string BranchName);
 
 /// <summary>
-/// Abstraction for opening Pull Requests on target GitHub repositories.
+/// Represents the current lifecycle state of a previously opened Pull Request on GitHub.
+/// </summary>
+public sealed record PullRequestOutcomeStatus(
+    int Number,
+    string OutcomeStatus,
+    string? ReviewSummary);
+
+/// <summary>
+/// Abstraction for opening and inspecting Pull Requests on target GitHub repositories.
 /// </summary>
 public interface IGitHubPullRequestClient
 {
@@ -31,6 +39,12 @@ public interface IGitHubPullRequestClient
         Stage5TestReportArtifact testReport,
         Stage6AuditVerdictArtifact auditVerdict,
         CancellationToken cancellationToken = default);
+
+    Task<PullRequestOutcomeStatus?> GetPullRequestOutcomeAsync(
+        RepositoryEntry repository,
+        int pullRequestNumber,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult<PullRequestOutcomeStatus?>(null);
 }
 
 /// <summary>
@@ -123,6 +137,70 @@ public sealed class GitHubPullRequestClient : IGitHubPullRequestClient
         string htmlUrl = root?["html_url"]?.GetValue<string>() ?? $"https://github.com/{repository.FullName}/pulls";
 
         return new PullRequestCreationResult(prNumber, htmlUrl, prTitle, headBranch);
+    }
+
+    /// <summary>
+    /// Queries GitHub REST API v3 (<c>GET /repos/{owner}/{name}/pulls/{pull_number}</c>) to determine whether a previously
+    /// opened Pull Request is <c>OPEN</c>, <c>MERGED</c>, or <c>CLOSED_UNMERGED</c>. Returns <c>null</c> gracefully when
+    /// <c>GH_ORCHESTRATOR_PAT</c> is not configured or on transient network failure.
+    /// </summary>
+    public async Task<PullRequestOutcomeStatus?> GetPullRequestOutcomeAsync(
+        RepositoryEntry repository,
+        int pullRequestNumber,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(repository);
+
+        if (pullRequestNumber <= 0 || string.IsNullOrWhiteSpace(_gitHubPat))
+        {
+            return null;
+        }
+
+        try
+        {
+            string endpoint = $"https://api.github.com/repos/{repository.Owner}/{repository.Name}/pulls/{pullRequestNumber}";
+            using HttpRequestMessage request = new(HttpMethod.Get, endpoint);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _gitHubPat);
+            request.Headers.UserAgent.ParseAdd("AutonomousAgentHub/1.0 (+https://github.com/TatoTopuria/autonomous-agent-hub)");
+            request.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
+
+            using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            string responseJson = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            JsonNode? root = JsonNode.Parse(responseJson);
+            if (root is null)
+            {
+                return null;
+            }
+
+            bool isMerged = root["merged"]?.GetValue<bool>() ?? false;
+            string state = root["state"]?.GetValue<string>() ?? "open";
+            string? title = root["title"]?.GetValue<string>();
+
+            string outcomeStatus = isMerged
+                ? "MERGED"
+                : string.Equals(state, "closed", StringComparison.OrdinalIgnoreCase)
+                    ? "CLOSED_UNMERGED"
+                    : "OPEN";
+
+            string? reviewSummary = outcomeStatus switch
+            {
+                "MERGED" => $"Pull Request #{pullRequestNumber} ({title}) was merged into {repository.DefaultBranch}.",
+                "CLOSED_UNMERGED" => $"Pull Request #{pullRequestNumber} ({title}) was closed without merging.",
+                _ => null
+            };
+
+            return new PullRequestOutcomeStatus(pullRequestNumber, outcomeStatus, reviewSummary);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     /// <summary>

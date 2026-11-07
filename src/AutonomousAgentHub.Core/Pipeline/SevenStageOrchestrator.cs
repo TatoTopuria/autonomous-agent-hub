@@ -18,7 +18,8 @@ public sealed record PipelineExecutionSummary(
     PullRequestCreationResult? PullRequest = null);
 
 /// <summary>
-/// Master state machine coordinating Stages 1 through 7 across polyglot target repositories.
+/// Master state machine coordinating Stages 1 through 7 across polyglot target repositories
+/// with closed-loop Experiential Memory (RSI) feedback.
 /// </summary>
 public sealed class SevenStageOrchestrator(
     HubConfig config,
@@ -31,7 +32,9 @@ public sealed class SevenStageOrchestrator(
     Stage5TesterAgent stage5Tester,
     Stage6AuditorAgent stage6Auditor,
     Stage7DeployerAgent stage7Deployer,
-    PipelineTelemetryLogger? telemetryLogger = null)
+    PipelineTelemetryLogger? telemetryLogger = null,
+    ExperientialMemoryManager? experientialMemoryManager = null,
+    IGitHubPullRequestClient? pullRequestClient = null)
 {
     public async Task<PipelineExecutionSummary> RunAsync(
         bool isDryRun = false,
@@ -52,7 +55,7 @@ public sealed class SevenStageOrchestrator(
         Console.WriteLine($"[Orchestrator] Hub: {config.HubName}");
         Console.WriteLine($"[Orchestrator] Mode: {(isDryRun ? "DRY-RUN (Read-Only Simulation)" : "PRODUCTION DAILY EVOLUTION")}");
         Console.WriteLine($"[Orchestrator] Selected Target: {repo.FullName} (Rotation Index: {selectedTarget.RotationIndex}, Stack Hint: {repo.PrimaryStack ?? "Auto"})");
-        Console.WriteLine($"[Orchestrator] Previous Completed Proposals for Target: {ledger.CompletedProposals.Count}");
+        Console.WriteLine($"[Orchestrator] Previous Completed Proposals for Target: {ledger.CompletedProposals.Count} | Aborted Attempts: {ledger.AbortedAttempts.Count}");
         Console.WriteLine("================================================================================");
 
         if (isDryRun)
@@ -66,6 +69,18 @@ public sealed class SevenStageOrchestrator(
                 auditQualityScore: null,
                 cancellationToken).ConfigureAwait(false);
             return dryRunSummary;
+        }
+
+        // Closed-Loop RSI Pre-Stage Sync: Poll open PR outcomes (MERGED vs. CLOSED_UNMERGED) before planning
+        if (experientialMemoryManager is not null && pullRequestClient is not null)
+        {
+            await experientialMemoryManager.SynchronizeOpenPullRequestsAsync(
+                repo,
+                stateLedgerManager,
+                pullRequestClient,
+                cancellationToken).ConfigureAwait(false);
+
+            ledger = await stateLedgerManager.LoadRepoLedgerAsync(repo, cancellationToken).ConfigureAwait(false);
         }
 
         // Clone target repository into isolated workspace (/tmp/workspace/{owner}_{repo})
@@ -141,6 +156,20 @@ public sealed class SevenStageOrchestrator(
                 initialExecution,
                 cancellationToken).ConfigureAwait(false);
 
+        // Record Stage 5 failure lessons into Experiential Memory whenever any attempt failed
+        if (experientialMemoryManager is not null)
+        {
+            foreach (TestExecutionAttempt failedAttempt in testReport.AttemptLogs.Where(a => !a.BuildSucceeded || !a.TestsSucceeded))
+            {
+                await experientialMemoryManager.RecordStage5FailureLessonAsync(
+                    repo.FullName,
+                    discovery.DetectedStack,
+                    plan.TaskTitle,
+                    failedAttempt,
+                    cancellationToken).ConfigureAwait(false);
+            }
+        }
+
         if (!testReport.Passed)
         {
             string reason = $"Stage 5 Tester failed after {testReport.TotalAttempts} self-healing attempts. Workspace hard-reset cleanly.";
@@ -189,6 +218,16 @@ public sealed class SevenStageOrchestrator(
                 $"Stage 6 Auditor rejected deployment (Approved={auditVerdict.Approved}, QualityScore={auditVerdict.QualityScore}/{config.MinimumAuditScore}). " +
                 $"Issues: {string.Join("; ", auditVerdict.BlockingIssues)}";
             Console.WriteLine($"[Orchestrator] {reason}");
+
+            if (experientialMemoryManager is not null)
+            {
+                await experientialMemoryManager.RecordStage6RejectionLessonAsync(
+                    repo.FullName,
+                    discovery.DetectedStack,
+                    plan.TaskTitle,
+                    auditVerdict,
+                    cancellationToken).ConfigureAwait(false);
+            }
 
             await gitWorkspaceManager.ResetAndCleanWorkspaceAsync(workspacePath, cancellationToken).ConfigureAwait(false);
 
@@ -295,7 +334,7 @@ public sealed class SevenStageOrchestrator(
         Console.WriteLine($"[Dry-Run] Ledger File Path: {stateLedgerManager.GetLedgerFilePath(repo)}");
         Console.WriteLine($"[Dry-Run] Enforced Whitelisted Authorities ({repo.WhitelistedAuthorities.Count}): {string.Join(", ", repo.WhitelistedAuthorities)}");
         Console.WriteLine($"[Dry-Run] Rate-Limit Pacing Delay: {config.InterStageDelaySeconds}s | Minimum Auditor Score: {config.MinimumAuditScore}/100 | Self-Healing Max Attempts: {config.MaxSelfHealingAttempts}");
-        Console.WriteLine("[Dry-Run] All 7 Stage Agents initialized and verified ready.");
+        Console.WriteLine("[Dry-Run] All 7 Stage Agents, SkillRegistry, ExperientialMemoryManager, and MCP Sandbox initialized and verified ready.");
 
         return new PipelineExecutionSummary(
             Succeeded: true,
@@ -306,4 +345,3 @@ public sealed class SevenStageOrchestrator(
             StatusMessage: $"Dry-run verification succeeded for target '{repo.FullName}' at rotation index {selectedTarget.RotationIndex}.");
     }
 }
-

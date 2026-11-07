@@ -68,6 +68,12 @@ public sealed class LedgerProposalEntry
     [JsonPropertyName("modifiedFiles")]
     public List<string> ModifiedFiles { get; init; } = [];
 
+    [JsonPropertyName("outcomeStatus")]
+    public string OutcomeStatus { get; init; } = "OPEN";
+
+    [JsonPropertyName("reviewSummary")]
+    public string? ReviewSummary { get; init; }
+
     [JsonPropertyName("createdAtUtc")]
     public DateTimeOffset CreatedAtUtc { get; init; } = DateTimeOffset.UtcNow;
 }

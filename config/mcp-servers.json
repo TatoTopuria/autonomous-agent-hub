@@ -1,0 +1,91 @@
+{
+  "mcpProtocolVersion": "2024-11-05",
+  "enforceZeroCostLocalStdioOnly": true,
+  "defaultProbeTimeoutMs": 5000,
+  "servers": [
+    {
+      "name": "filesystem",
+      "packageId": "@modelcontextprotocol/server-filesystem",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "{WORKSPACE_PATH}"
+      ],
+      "enabled": true,
+      "zeroCostVerified": true,
+      "requiresWorkspaceScope": true,
+      "allowedReadStages": [
+        "Stage1Discovery",
+        "Stage3Planner",
+        "Stage4Executor",
+        "Stage6Auditor"
+      ],
+      "allowedWriteStages": [
+        "Stage4Executor"
+      ],
+      "description": "Official MCP reference filesystem server confined strictly to the isolated target clone workspace (/tmp/workspace/{owner}_{repo})."
+    },
+    {
+      "name": "git",
+      "packageId": "@modelcontextprotocol/server-git",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-git",
+        "--repository",
+        "{WORKSPACE_PATH}"
+      ],
+      "enabled": true,
+      "zeroCostVerified": true,
+      "requiresWorkspaceScope": true,
+      "allowedReadStages": [
+        "Stage1Discovery",
+        "Stage6Auditor"
+      ],
+      "allowedWriteStages": [],
+      "description": "Official MCP reference Git server for read-only commit history, blame, and unified diff inspection."
+    },
+    {
+      "name": "sequential-thinking",
+      "packageId": "@modelcontextprotocol/server-sequential-thinking",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "enabled": true,
+      "zeroCostVerified": true,
+      "requiresWorkspaceScope": false,
+      "allowedReadStages": [
+        "Stage3Planner",
+        "Stage6Auditor"
+      ],
+      "allowedWriteStages": [],
+      "description": "Official MCP reference sequential-thinking server for structured multi-step architectural reasoning and adversarial review."
+    },
+    {
+      "name": "memory",
+      "packageId": "@modelcontextprotocol/server-memory",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "enabled": true,
+      "zeroCostVerified": true,
+      "requiresWorkspaceScope": false,
+      "allowedReadStages": [
+        "Stage1Discovery",
+        "Stage3Planner",
+        "Stage6Auditor"
+      ],
+      "allowedWriteStages": [],
+      "description": "Official MCP reference local knowledge-graph memory server for cross-stage invariant retention."
+    }
+  ]
+}

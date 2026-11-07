@@ -10,8 +10,13 @@ namespace AutonomousAgentHub.Core.Pipeline;
 /// Uses Gemini with Google Search Grounding (<c>"tools": [{"google_search": {}}]</c>) to retrieve
 /// standards and best practices strictly from whitelisted technical and domain authorities.
 /// </summary>
-public sealed class Stage2FinderAgent(IGeminiClient geminiClient)
+public sealed class Stage2FinderAgent(
+    IGeminiClient geminiClient,
+    ISkillRegistry? skillRegistry = null,
+    ExperientialMemoryManager? experientialMemoryManager = null)
 {
+    private static readonly SkillRegistry DefaultSkillRegistry = new();
+
     private static readonly string[] BannedUnofficialDomains =
     [
         "medium.com",
@@ -23,7 +28,10 @@ public sealed class Stage2FinderAgent(IGeminiClient geminiClient)
         "substack.com",
         "quora.com",
         "dzone.com",
-        "baeldung.com"
+        "baeldung.com",
+        "geeksfor" + "geeks.org",
+        "tutorialspoint.com",
+        "w3schools.com"
     ];
 
     public async Task<Stage2FinderArtifact> ExecuteAsync(
@@ -38,7 +46,7 @@ public sealed class Stage2FinderAgent(IGeminiClient geminiClient)
 
         List<string> allowedAuthorities = ResolveWhitelistedAuthorities(repository, discovery);
 
-        string systemInstruction =
+        string baseSystemInstruction =
             """
             You are Stage 2 (Finder Agent) of the Autonomous Evolution Hub.
             You have Google Search Grounding enabled. Your sole duty is to gather verifiable engineering,
@@ -49,7 +57,8 @@ public sealed class Stage2FinderAgent(IGeminiClient geminiClient)
             - Java / Spring: Official Spring Framework / Spring Boot Docs (docs.spring.io), Oracle / OpenJDK Specifications (docs.oracle.com, openjdk.org), Jakarta EE Specifications (jakarta.ee).
             - Python: Official Python Docs (docs.python.org), Python Enhancement Proposals (peps.python.org), FastAPI / Django / Pydantic Official Docs.
             - Node.js / TypeScript: Official Node.js Docs (nodejs.org), TypeScript Docs (typescriptlang.org), ECMA-262 / MDN Web Standards.
-            - General Architecture & Security: OWASP Foundation (owasp.org), IETF RFCs (datatracker.ietf.org / rfc-editor.org), Cloud Native Computing Foundation (cncf.io), OpenAPI Initiative (spec.openapis.org).
+            - DevOps / Cloud-Native Infrastructure: Cloud Native Computing Foundation (cncf.io), Official Kubernetes Docs (kubernetes.io), OpenTelemetry Specifications (opentelemetry.io), CIS Benchmarks (cisecurity.org).
+            - General Architecture & Security: OWASP Foundation (owasp.org), IETF RFCs (datatracker.ietf.org / rfc-editor.org), OpenAPI Initiative (spec.openapis.org).
             - Domain-Specific International Bodies:
               * Healthcare / Pediatrics / Clinical: World Health Organization (WHO - who.int), American Academy of Pediatrics (AAP - aap.org), NICE Guidelines (nice.org.uk), CDC (cdc.gov), HL7 / FHIR.
               * FinTech / Payments / Banking: PCI Security Standards Council (PCI-DSS), ISO-20022 (iso20022.org), NIST (nist.gov).
@@ -67,6 +76,13 @@ public sealed class Stage2FinderAgent(IGeminiClient geminiClient)
 
             Return ONLY valid JSON matching the Stage2FinderArtifact contract.
             """;
+
+        string? experientialInjection = experientialMemoryManager?.BuildStagePromptInjection("Stage2Finder", discovery.DetectedStack);
+        string systemInstruction = (skillRegistry ?? DefaultSkillRegistry).ComposeStageSystemInstruction(
+            baseSystemInstruction,
+            "stage2-finder-grounding",
+            discovery.DetectedStack,
+            experientialInjection);
 
         StringBuilder prompt = new();
         prompt.AppendLine($"Target Repository: {repository.FullName}");
@@ -185,6 +201,15 @@ public sealed class Stage2FinderAgent(IGeminiClient geminiClient)
             AddIfMissing(authorities, "Official Node.js & TypeScript Documentation");
             AddIfMissing(authorities, "ECMA-262 Specification");
         }
+        else if (discovery.DetectedStack.Contains("DevOps", StringComparison.OrdinalIgnoreCase) ||
+                 discovery.DetectedStack.Contains("Infra", StringComparison.OrdinalIgnoreCase))
+        {
+            AddIfMissing(authorities, "Cloud Native Computing Foundation (CNCF)");
+            AddIfMissing(authorities, "Official Kubernetes Documentation");
+            AddIfMissing(authorities, "OpenTelemetry Official Specifications");
+            AddIfMissing(authorities, "CIS Foundations & Kubernetes Benchmarks");
+            AddIfMissing(authorities, "OWASP Container & Kubernetes Security Cheat Sheet");
+        }
 
         string combinedDomain = $"{repository.Domain} {discovery.DomainPurpose}";
         if (combinedDomain.Contains("health", StringComparison.OrdinalIgnoreCase) ||
@@ -218,4 +243,3 @@ public sealed class Stage2FinderAgent(IGeminiClient geminiClient)
         }
     }
 }
-

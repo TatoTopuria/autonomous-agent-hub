@@ -1,0 +1,83 @@
+{
+  "lastUpdatedUtc": "2026-11-07T13:50:00Z",
+  "prOutcomeMetrics": {
+    "totalTracked": 0,
+    "mergedCount": 0,
+    "closedUnmergedCount": 0,
+    "openCount": 0
+  },
+  "stageFailureCounts": {
+    "Stage2Finder": 0,
+    "Stage5Tester": 0,
+    "Stage6Auditor": 0
+  },
+  "learnedHeuristics": [
+    {
+      "id": "LH-001",
+      "targetStack": "All",
+      "applicableStages": [
+        "Stage3Planner",
+        "Stage4Executor"
+      ],
+      "directive": "Every production code modification MUST be paired with at least one deterministic unit or regression test file in targetFiles and fileMutations.",
+      "sourceReason": "Baseline Hub Invariant — Stage 6 Auditor requires verified unit test coverage.",
+      "createdAtUtc": "2026-11-07T10:31:00Z"
+    },
+    {
+      "id": "LH-002",
+      "targetStack": "DotNet",
+      "applicableStages": [
+        "Stage1Discovery",
+        "Stage3Planner",
+        "Stage4Executor",
+        "Stage6Auditor"
+      ],
+      "directive": "Propagate CancellationToken through all async methods, enforce ConfigureAwait(false) in library/infrastructure code, and apply AsNoTracking() on read-only EF Core queries.",
+      "sourceReason": "Microsoft Learn .NET 8 Concurrency & EF Core Performance Standards.",
+      "createdAtUtc": "2026-11-07T10:31:00Z"
+    },
+    {
+      "id": "LH-003",
+      "targetStack": "JavaGradle",
+      "applicableStages": [
+        "Stage3Planner",
+        "Stage4Executor",
+        "Stage6Auditor"
+      ],
+      "directive": "Use constructor injection, @Transactional(readOnly = true) for query methods, Jakarta Bean Validation annotations on request DTOs, and AssertJ in JUnit 5 tests.",
+      "sourceReason": "Official Spring Boot 3 & Jakarta EE Specifications.",
+      "createdAtUtc": "2026-11-07T10:31:00Z"
+    },
+    {
+      "id": "LH-004",
+      "targetStack": "DevOpsInfra",
+      "applicableStages": [
+        "Stage1Discovery",
+        "Stage3Planner",
+        "Stage4Executor",
+        "Stage6Auditor"
+      ],
+      "directive": "Enforce non-root container execution (securityContext.runAsNonRoot: true), explicit CPU/memory requests and limits, valid Grafana/OpenTelemetry JSON schemas, and bash -n syntax verification.",
+      "sourceReason": "CNCF, CIS Kubernetes Benchmark & OWASP Container Security Guidelines.",
+      "createdAtUtc": "2026-11-07T10:31:00Z"
+    }
+  ],
+  "forbiddenAntiPatterns": [
+    {
+      "id": "AP-001",
+      "targetStack": "All",
+      "patternDescription": "Emitting lazy truncation placeholders such as '// ... existing code ...' or '/* remaining implementation */' in Stage 4 FileMutation.updatedContent.",
+      "mitigationRule": "Always emit 100% complete, compilable source files in FileMutation.updatedContent without any omitted sections.",
+      "triggeredByStage": "Stage4Executor",
+      "createdAtUtc": "2026-11-07T10:31:00Z"
+    },
+    {
+      "id": "AP-002",
+      "targetStack": "All",
+      "patternDescription": "Citing unofficial blogs (Medium, Reddit, StackOverflow, dev.to, Baeldung, DZone) as Stage 2 EvidenceBlocks.",
+      "mitigationRule": "Cite only official standards bodies and documentation (Microsoft Learn, IETF RFCs, ECMA, OWASP, CNCF, Official Spring/Python/Node Docs, WHO/AAP/PCI-DSS).",
+      "triggeredByStage": "Stage2Finder",
+      "createdAtUtc": "2026-11-07T10:31:00Z"
+    }
+  ]
+}

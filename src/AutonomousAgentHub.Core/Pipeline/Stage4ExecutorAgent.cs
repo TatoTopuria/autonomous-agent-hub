@@ -7,10 +7,29 @@ namespace AutonomousAgentHub.Core.Pipeline;
 /// <summary>
 /// Stage 4: Code &amp; Test Implementation Agent (Executor).
 /// Reads full target file contents from the cloned workspace, generates updated production and test code,
-/// applies the changes safely to disk, and supports self-healing iterations driven by Stage 5 failure traces.
+/// validates against truncation placeholders and path traversal, applies the changes safely to disk,
+/// and supports self-healing iterations driven by Stage 5 failure traces.
 /// </summary>
-public sealed class Stage4ExecutorAgent(IGeminiClient geminiClient)
+public sealed class Stage4ExecutorAgent(
+    IGeminiClient geminiClient,
+    ISkillRegistry? skillRegistry = null,
+    ExperientialMemoryManager? experientialMemoryManager = null,
+    IMcpToolManager? mcpToolManager = null)
 {
+    private static readonly SkillRegistry DefaultSkillRegistry = new();
+
+    private static readonly string[] ForbiddenTruncationPlaceholders =
+    [
+        "// ... existing code",
+        "// ... rest of",
+        "// ... remaining",
+        "/* ... existing",
+        "/* ... rest of",
+        "# ... existing code",
+        "# ... rest of",
+        "// TODO: implement remaining"
+    ];
+
     public async Task<Stage4ExecutionArtifact> ExecuteAsync(
         string workspacePath,
         Stage1DiscoveryArtifact discovery,
@@ -32,7 +51,7 @@ public sealed class Stage4ExecutorAgent(IGeminiClient geminiClient)
             plan,
             cancellationToken).ConfigureAwait(false);
 
-        string systemInstruction =
+        string baseSystemInstruction =
             """
             You are Stage 4 (Executor Agent) of the Autonomous Evolution Hub.
             You write production-grade code and comprehensive unit/regression tests for the planned improvement task.
@@ -44,6 +63,13 @@ public sealed class Stage4ExecutorAgent(IGeminiClient geminiClient)
             Return ONLY valid JSON matching the Stage4ExecutionArtifact contract.
             """;
 
+        string? experientialInjection = experientialMemoryManager?.BuildStagePromptInjection("Stage4Executor", discovery.DetectedStack);
+        string systemInstruction = (skillRegistry ?? DefaultSkillRegistry).ComposeStageSystemInstruction(
+            baseSystemInstruction,
+            "stage4-executor-clean-diff",
+            discovery.DetectedStack,
+            experientialInjection);
+
         StringBuilder prompt = new();
         prompt.AppendLine($"Repository: {discovery.RepositoryFullName} ({discovery.DetectedStack})");
         prompt.AppendLine($"Attempt Number: {attemptNumber}");
@@ -53,6 +79,16 @@ public sealed class Stage4ExecutorAgent(IGeminiClient geminiClient)
         {
             prompt.AppendLine(
                 $"Governing Standard: [{plan.PrimaryEvidenceBlock.IssuingAuthority}] {plan.PrimaryEvidenceBlock.DocumentTitle} - {plan.PrimaryEvidenceBlock.GoverningExcerpt}");
+        }
+
+        if (mcpToolManager is not null)
+        {
+            string mcpSummary = mcpToolManager.BuildStageMcpContextSummary("Stage4Executor", workspacePath);
+            if (!string.IsNullOrWhiteSpace(mcpSummary))
+            {
+                prompt.AppendLine();
+                prompt.AppendLine(mcpSummary);
+            }
         }
 
         prompt.AppendLine();
@@ -105,6 +141,37 @@ public sealed class Stage4ExecutorAgent(IGeminiClient geminiClient)
         };
     }
 
+    /// <summary>
+    /// Validates that no <see cref="FileMutation"/> contains lazy truncation placeholders before writing to disk.
+    /// </summary>
+    public static void ValidateMutationsBeforeWrite(IReadOnlyList<FileMutation> mutations)
+    {
+        ArgumentNullException.ThrowIfNull(mutations);
+
+        foreach (FileMutation mutation in mutations)
+        {
+            if (string.IsNullOrWhiteSpace(mutation.RelativePath))
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(mutation.UpdatedContent))
+            {
+                throw new InvalidOperationException(
+                    $"Stage 4 validation failed: FileMutation for '{mutation.RelativePath}' produced empty UpdatedContent.");
+            }
+
+            foreach (string placeholder in ForbiddenTruncationPlaceholders)
+            {
+                if (mutation.UpdatedContent.Contains(placeholder, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        $"Stage 4 validation failed: FileMutation for '{mutation.RelativePath}' contains forbidden truncation placeholder '{placeholder}'. Full file content is required.");
+                }
+            }
+        }
+    }
+
     public static async Task ApplyFileMutationsToWorkspaceAsync(
         string workspacePath,
         IReadOnlyList<FileMutation> mutations,
@@ -112,6 +179,8 @@ public sealed class Stage4ExecutorAgent(IGeminiClient geminiClient)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
         ArgumentNullException.ThrowIfNull(mutations);
+
+        ValidateMutationsBeforeWrite(mutations);
 
         string normalizedWorkspaceRoot = Path.GetFullPath(workspacePath);
 
@@ -182,4 +251,3 @@ public sealed class Stage4ExecutorAgent(IGeminiClient geminiClient)
         return files;
     }
 }
-

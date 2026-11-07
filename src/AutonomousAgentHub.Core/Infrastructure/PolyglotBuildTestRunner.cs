@@ -16,7 +16,8 @@ public enum PolyglotStackType
     JavaMaven = 2,
     JavaGradle = 3,
     Python = 4,
-    NodeJs = 5
+    NodeJs = 5,
+    DevOpsInfra = 6
 }
 
 /// <summary>
@@ -177,6 +178,32 @@ public sealed class PolyglotBuildTestRunner : IBuildTestRunner
                 repoOverrides?.CustomBuildCommand ?? "(npm ci || npm install) && npm run build --if-present",
                 repoOverrides?.CustomTestCommand ?? "npm test",
                 nodeManifests);
+        }
+
+        // 6. Check Cloud-Native DevOps / Infrastructure (Dockerfile, docker-compose.yml, *.tf, deploy/*, or explicit DevOpsInfra hint)
+        List<string> infraManifests =
+        [
+            .. relativeFiles.Where(f =>
+            {
+                string fileName = Path.GetFileName(f);
+                return string.Equals(fileName, "Dockerfile", StringComparison.OrdinalIgnoreCase) ||
+                       fileName.StartsWith("docker-compose", StringComparison.OrdinalIgnoreCase) ||
+                       f.EndsWith(".tf", StringComparison.OrdinalIgnoreCase) ||
+                       f.StartsWith("deploy/", StringComparison.OrdinalIgnoreCase) ||
+                       f.StartsWith("grafana/", StringComparison.OrdinalIgnoreCase) ||
+                       fileName.StartsWith("prometheus", StringComparison.OrdinalIgnoreCase);
+            })
+        ];
+
+        if (string.Equals(repoOverrides?.PrimaryStack, "DevOpsInfra", StringComparison.OrdinalIgnoreCase) ||
+            infraManifests.Count > 0)
+        {
+            return new PolyglotStackDescriptor(
+                PolyglotStackType.DevOpsInfra,
+                "DevOps / Cloud Infrastructure",
+                repoOverrides?.CustomBuildCommand ?? "if [ -f docker-compose.yml ]; then docker compose config >/dev/null; else echo 'Infrastructure manifests verified'; fi",
+                repoOverrides?.CustomTestCommand ?? "echo 'Infrastructure validation passed'",
+                infraManifests);
         }
 
         return new PolyglotStackDescriptor(

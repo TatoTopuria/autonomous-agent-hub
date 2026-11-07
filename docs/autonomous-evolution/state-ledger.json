@@ -1,8 +1,8 @@
 {
   "repository": "TatoTopuria/autonomous-agent-hub",
   "defaultBranch": "main",
-  "lastInspectedCommitSha": "0763989",
-  "lastRunUtc": "2026-11-07T10:31:00Z",
+  "lastInspectedCommitSha": "26fec41",
+  "lastRunUtc": "2026-11-07T14:00:00Z",
   "completedTier1Evolutions": [
     {
       "id": "T1-001",
@@ -40,6 +40,83 @@
         "tests/AutonomousAgentHub.Tests/PipelineOrchestrationAndGuardrailTests.cs"
       ],
       "completedAtUtc": "2026-11-07T10:31:00Z"
+    },
+    {
+      "id": "T1-004",
+      "title": "Implement Closed-Loop Experiential Memory (ExperientialMemoryState, ExperientialMemoryManager) & GitHub Pull Request Outcome Tracking (MERGED vs. CLOSED_UNMERGED)",
+      "evidenceAuthority": "GitHub REST API Official Documentation (2022-11-28) & Microsoft Learn (.NET Serialization)",
+      "documentTitle": "GitHub REST API Pulls & System.Text.Json Source Generation",
+      "publicationYear": 2025,
+      "evidenceUrl": "https://docs.github.com/en/rest/pulls/pulls",
+      "modifiedFiles": [
+        "src/AutonomousAgentHub.Core/Contracts/ExperientialMemoryState.cs",
+        "src/AutonomousAgentHub.Core/Contracts/RepoStateLedger.cs",
+        "src/AutonomousAgentHub.Core/Infrastructure/ExperientialMemoryManager.cs",
+        "src/AutonomousAgentHub.Core/Infrastructure/GitHubPullRequestClient.cs",
+        "state/experiential-memory.json"
+      ],
+      "completedAtUtc": "2026-11-07T14:00:00Z"
+    },
+    {
+      "id": "T1-005",
+      "title": "Add Dynamic Modular Skill Registry (SkillRegistry) with Stage-Specific (skills/stages/*.md) and Polyglot Stack Skill Packs (skills/stacks/*.md)",
+      "evidenceAuthority": "Microsoft Learn (.NET Architecture) & OWASP Top 10 for LLM Applications 2025",
+      "documentTitle": "OWASP LLM01:2025 System Prompt Governance & Modular Context Composition",
+      "publicationYear": 2025,
+      "evidenceUrl": "https://owasp.org/www-project-top-10-for-large-language-model-applications/",
+      "modifiedFiles": [
+        "src/AutonomousAgentHub.Core/Infrastructure/SkillRegistry.cs",
+        "skills/stages/stage1-discovery-ast.md",
+        "skills/stages/stage2-finder-grounding.md",
+        "skills/stages/stage3-planner-safety.md",
+        "skills/stages/stage4-executor-clean-diff.md",
+        "skills/stages/stage5-tester-self-heal.md",
+        "skills/stages/stage6-auditor-adversarial.md",
+        "skills/stacks/dotnet.md",
+        "skills/stacks/java-spring.md",
+        "skills/stacks/python.md",
+        "skills/stacks/nodejs.md",
+        "skills/stacks/devops-infra.md",
+        "skills/learned-heuristics.md"
+      ],
+      "completedAtUtc": "2026-11-07T14:00:00Z"
+    },
+    {
+      "id": "T1-006",
+      "title": "Implement Safe Zero-Cost Local stdio Model Context Protocol (MCP) Capability Governor & Workspace Sandbox (McpToolManager)",
+      "evidenceAuthority": "Model Context Protocol (MCP) Official Specification & OWASP Foundation",
+      "documentTitle": "MCP Specification (2024-11-05) JSON-RPC 2.0 stdio Transport & Capability Negotiation",
+      "publicationYear": 2025,
+      "evidenceUrl": "https://modelcontextprotocol.io/specification",
+      "modifiedFiles": [
+        "config/mcp-servers.json",
+        "src/AutonomousAgentHub.Core/Infrastructure/McpToolManager.cs",
+        "src/AutonomousAgentHub.Core/Serialization/HubJsonSerializerContext.cs"
+      ],
+      "completedAtUtc": "2026-11-07T14:00:00Z"
+    },
+    {
+      "id": "T1-007",
+      "title": "Upgrade Stages 1-7 with DevOpsInfra Stack Support, StackTraceDiagnosticParser, AbortedAttempts Deduplication, Truncation Guardrails & Prioritized Multi-File Diff Auditing",
+      "evidenceAuthority": "Google AI for Developers & Microsoft Learn (.NET 8)",
+      "documentTitle": "Gemini Structured Outputs, .NET CLI Diagnostics & Adversarial Diff Verification",
+      "publicationYear": 2025,
+      "evidenceUrl": "https://ai.google.dev/gemini-api/docs",
+      "modifiedFiles": [
+        "src/AutonomousAgentHub.Core/Infrastructure/PolyglotBuildTestRunner.cs",
+        "src/AutonomousAgentHub.Core/Infrastructure/StackTraceDiagnosticParser.cs",
+        "src/AutonomousAgentHub.Core/Infrastructure/GeminiFreeTierClient.cs",
+        "src/AutonomousAgentHub.Core/Pipeline/Stage1DiscoveryAgent.cs",
+        "src/AutonomousAgentHub.Core/Pipeline/Stage2FinderAgent.cs",
+        "src/AutonomousAgentHub.Core/Pipeline/Stage3PlannerAgent.cs",
+        "src/AutonomousAgentHub.Core/Pipeline/Stage4ExecutorAgent.cs",
+        "src/AutonomousAgentHub.Core/Pipeline/Stage5TesterAgent.cs",
+        "src/AutonomousAgentHub.Core/Pipeline/Stage6AuditorAgent.cs",
+        "src/AutonomousAgentHub.Core/Pipeline/SevenStageOrchestrator.cs",
+        "src/AutonomousAgentHub.Core/Program.cs",
+        "tests/AutonomousAgentHub.Tests/SelfEvolutionMemorySkillAndMcpTests.cs"
+      ],
+      "completedAtUtc": "2026-11-07T14:00:00Z"
     }
   ],
   "completedTier2Proposals": [
@@ -74,6 +151,19 @@
       "completedAtUtc": "2026-11-07T10:31:00Z"
     }
   ],
-  "pendingTier2Proposals": []
+  "pendingTier2Proposals": [
+    {
+      "id": "T2-003",
+      "title": "Add Weekly Hub Self-Evolution GitHub Actions Workflow (.github/workflows/hub-self-evolution.yml)",
+      "approvalStatus": "AWAITING_USER_APPROVAL",
+      "evidenceAuthority": "GitHub Official Actions Documentation & OWASP CI/CD Security Guidelines",
+      "documentTitle": "Events that trigger workflows (schedule & workflow_dispatch) and least-privilege GITHUB_TOKEN permissions",
+      "publicationYear": 2025,
+      "evidenceUrl": "https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows",
+      "proposedFiles": [
+        ".github/workflows/hub-self-evolution.yml"
+      ],
+      "createdAtUtc": "2026-11-07T14:00:00Z"
+    }
+  ]
 }
-

@@ -12,8 +12,13 @@ namespace AutonomousAgentHub.Core.Pipeline;
 public sealed class Stage6AuditorAgent(
     IGeminiClient geminiClient,
     IGitWorkspaceManager gitWorkspaceManager,
-    int minimumQualityScore = 85)
+    int minimumQualityScore = 85,
+    ISkillRegistry? skillRegistry = null,
+    ExperientialMemoryManager? experientialMemoryManager = null,
+    IMcpToolManager? mcpToolManager = null)
 {
+    private static readonly SkillRegistry DefaultSkillRegistry = new();
+
     private static readonly string[] SecretPatterns =
     [
         "BEGIN RSA PRIVATE KEY",
@@ -113,7 +118,7 @@ public sealed class Stage6AuditorAgent(
             }
         }
 
-        string systemInstruction =
+        string baseSystemInstruction =
             """
             You are Stage 6 (Independent Principal Auditor Agent) of the Autonomous Evolution Hub.
             You act as an adversarial Principal Systems Architect & Security Reviewer.
@@ -129,10 +134,28 @@ public sealed class Stage6AuditorAgent(
             Return ONLY valid JSON matching the Stage6AuditVerdictArtifact contract.
             """;
 
+        string? experientialInjection = experientialMemoryManager?.BuildStagePromptInjection("Stage6Auditor", discovery.DetectedStack);
+        string systemInstruction = (skillRegistry ?? DefaultSkillRegistry).ComposeStageSystemInstruction(
+            baseSystemInstruction,
+            "stage6-auditor-adversarial",
+            discovery.DetectedStack,
+            experientialInjection);
+
         StringBuilder prompt = new();
         prompt.AppendLine($"Repository: {discovery.RepositoryFullName} ({discovery.DetectedStack})");
         prompt.AppendLine($"Task Title: {plan.TaskTitle}");
         prompt.AppendLine($"Rationale: {plan.EngineeringAndBusinessRationale}");
+
+        if (mcpToolManager is not null)
+        {
+            string mcpSummary = mcpToolManager.BuildStageMcpContextSummary("Stage6Auditor", workspacePath);
+            if (!string.IsNullOrWhiteSpace(mcpSummary))
+            {
+                prompt.AppendLine();
+                prompt.AppendLine(mcpSummary);
+            }
+        }
+
         prompt.AppendLine();
         prompt.AppendLine("Stage 1 Critical Business Invariants:");
         foreach (string inv in discovery.CriticalBusinessInvariants)
@@ -151,7 +174,7 @@ public sealed class Stage6AuditorAgent(
         prompt.AppendLine($"Stage 5 Test Report: Passed={testReport.Passed}, Attempts={testReport.TotalAttempts}");
         prompt.AppendLine();
         prompt.AppendLine($"=== UNIFIED GIT DIFF ({diffLineCount} lines) ===");
-        prompt.AppendLine(unifiedDiff.Length <= 14000 ? unifiedDiff : unifiedDiff[..14000]);
+        prompt.AppendLine(BuildPrioritizedDiffExcerpt(unifiedDiff, maxChars: 18000));
 
         Stage6AuditVerdictArtifact llmVerdict = await geminiClient.GenerateStructuredAsync<Stage6AuditVerdictArtifact>(
             systemInstruction,
@@ -173,5 +196,60 @@ public sealed class Stage6AuditorAgent(
             DiffLineCount = diffLineCount
         };
     }
-}
 
+    /// <summary>
+    /// Preserves a complete modified-file manifest (<c>diff --git a/... b/...</c>) at the top of the excerpt
+    /// and allocates balanced character budgets across all modified production and test file sections so
+    /// trailing unit test diffs are never truncated out of existence.
+    /// </summary>
+    public static string BuildPrioritizedDiffExcerpt(string unifiedDiff, int maxChars = 18000)
+    {
+        if (string.IsNullOrEmpty(unifiedDiff) || unifiedDiff.Length <= maxChars)
+        {
+            return unifiedDiff;
+        }
+
+        string[] sections = unifiedDiff.Split("diff --git ", StringSplitOptions.RemoveEmptyEntries);
+        if (sections.Length <= 1)
+        {
+            return unifiedDiff[..maxChars];
+        }
+
+        List<string> fileDiffBlocks = [.. sections.Select(s => "diff --git " + s)];
+        List<string> fileHeaders =
+        [
+            .. fileDiffBlocks.Select(block =>
+            {
+                int newline = block.IndexOf('\n');
+                return newline > 0 ? block[..newline].Trim() : block.Trim();
+            })
+        ];
+
+        StringBuilder sb = new();
+        sb.AppendLine("--- MODIFIED FILES SUMMARY (COMPLETE DIFF MANIFEST) ---");
+        foreach (string header in fileHeaders)
+        {
+            sb.AppendLine($"* {header}");
+        }
+        sb.AppendLine("--- BALANCED PER-FILE DIFF HUNKS ---");
+
+        int remainingBudget = Math.Max(2000, maxChars - sb.Length);
+        int perFileBudget = Math.Max(600, remainingBudget / fileDiffBlocks.Count);
+
+        foreach (string block in fileDiffBlocks)
+        {
+            if (block.Length <= perFileBudget)
+            {
+                sb.AppendLine(block.TrimEnd());
+            }
+            else
+            {
+                sb.AppendLine(block[..perFileBudget].TrimEnd());
+                sb.AppendLine("... [FILE DIFF HUNK TRUNCATED TO PRESERVE MULTI-FILE AUDIT VISIBILITY] ...");
+            }
+        }
+
+        string result = sb.ToString();
+        return result.Length <= maxChars ? result : result[..maxChars];
+    }
+}
