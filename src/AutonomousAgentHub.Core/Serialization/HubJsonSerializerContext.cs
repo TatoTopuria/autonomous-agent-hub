@@ -29,3 +29,4 @@ namespace AutonomousAgentHub.Core.Serialization;
 public partial class HubJsonSerializerContext : JsonSerializerContext
 {
 }
+

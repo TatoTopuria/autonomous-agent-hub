@@ -56,3 +56,4 @@ fi
 dotnet run --project src/AutonomousAgentHub.Core/AutonomousAgentHub.Core.csproj --configuration Release --no-build -- "${CLI_ARGS[@]}"
 
 echo "[AutonomousEvolutionRunner] Cycle completed cleanly."
+

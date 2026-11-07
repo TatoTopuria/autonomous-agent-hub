@@ -53,3 +53,4 @@ To minimize input token usage on every evolution cycle:
 - `scripts/autonomous-evolution-runner.sh` reads `lastInspectedCommitSha` from `docs/autonomous-evolution/state-ledger.json`.
 - Only commits and file diffs modified since `lastInspectedCommitSha` (`git diff <lastInspectedCommitSha>..HEAD`) are prioritized for inspection.
 - Completed Tier 1 evolutions and approved Tier 2 proposals are recorded in `docs/autonomous-evolution/state-ledger.json` so the agent never wastes tokens re-proposing completed work.
+
