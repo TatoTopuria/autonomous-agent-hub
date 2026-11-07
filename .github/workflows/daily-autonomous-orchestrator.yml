@@ -36,10 +36,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup .NET 8.0 SDK
+      - name: Setup .NET 8.0 & 9.0 SDKs
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: |
+            8.0.x
+            9.0.x
 
       - name: Setup Java JDK 21 (Temurin) with Maven & Gradle Cache
         uses: actions/setup-java@v4

@@ -23,7 +23,7 @@ public sealed class Stage1DiscoveryAgent(
 
     private static readonly string[] SourceFileExtensions =
     [
-        ".cs", ".java", ".kt", ".py", ".ts", ".tsx", ".js", ".mjs", ".json", ".yml", ".yaml", ".xml", ".toml", ".gradle"
+        ".cs", ".java", ".kt", ".kts", ".py", ".ts", ".tsx", ".js", ".mjs", ".json", ".yml", ".yaml", ".xml", ".toml", ".gradle", ".slnx", ".tf", ".sh"
     ];
 
     public async Task<Stage1DiscoveryArtifact> ExecuteAsync(
@@ -299,15 +299,22 @@ public sealed class Stage1DiscoveryAgent(
     {
         string name = Path.GetFileName(relativePath);
         return relativePath.EndsWith(".sln", StringComparison.OrdinalIgnoreCase) ||
+               relativePath.EndsWith(".slnx", StringComparison.OrdinalIgnoreCase) ||
                relativePath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase) ||
+               relativePath.EndsWith(".tf", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(name, "Directory.Build.props", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(name, "Directory.Packages.props", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(name, "pom.xml", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(name, "build.gradle", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(name, "build.gradle.kts", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(name, "settings.gradle.kts", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(name, "pyproject.toml", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(name, "requirements.txt", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(name, "setup.py", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(name, "package.json", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(name, "tsconfig.json", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(name, "docker-compose.yml", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(name, "Dockerfile", StringComparison.OrdinalIgnoreCase) ||
                name.StartsWith("appsettings", StringComparison.OrdinalIgnoreCase) ||
                name.StartsWith("application.", StringComparison.OrdinalIgnoreCase);
     }

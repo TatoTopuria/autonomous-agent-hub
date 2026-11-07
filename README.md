@@ -117,6 +117,6 @@ dotnet test AutonomousAgentHub.sln --configuration Release
 dotnet run --project src/AutonomousAgentHub.Core -- --dry-run
 
 # Target a specific repository override in Dry-Run mode
-dotnet run --project src/AutonomousAgentHub.Core -- --dry-run --repo TatoTopuria/python-clinical-analytics-api
+dotnet run --project src/AutonomousAgentHub.Core -- --dry-run --repo TatoTopuria/EventHub.Booking
 ```
 

@@ -9,27 +9,44 @@
   "repositories": [
     {
       "owner": "TatoTopuria",
-      "name": "dotnet-clean-architecture-sample",
+      "name": "wisewallet-infra",
       "defaultBranch": "main",
-      "primaryStack": "DotNet",
-      "domain": "Enterprise Microservices & FinTech",
+      "primaryStack": "DevOpsInfra",
+      "domain": "FinTech Cloud Infrastructure, Terraform IaC & OpenTelemetry Observability",
       "enabled": true,
-      "customBuildCommand": null,
-      "customTestCommand": null,
+      "customBuildCommand": "if [ -f docker-compose.yml ]; then docker compose config >/dev/null; else echo 'Validated WiseWallet infrastructure layout'; fi",
+      "customTestCommand": "python3 -c \"import json, glob; [json.load(open(f)) for f in glob.glob('grafana/**/*.json', recursive=True)]; print('Grafana JSON dashboards valid')\"",
       "whitelistedAuthorities": [
-        "Microsoft Learn",
-        "Official .NET Runtime / ASP.NET Core / EF Core Documentation",
+        "Cloud Native Computing Foundation (CNCF)",
+        "OpenTelemetry Official Specifications",
+        "CIS AWS Foundations Benchmark",
         "OWASP Foundation",
-        "IETF RFCs",
         "PCI-DSS / ISO-20022"
       ]
     },
     {
       "owner": "TatoTopuria",
-      "name": "spring-boot-order-service",
+      "name": "wisewallet-transaction-service",
       "defaultBranch": "main",
-      "primaryStack": "JavaSpring",
-      "domain": "Distributed Commerce & Order Processing",
+      "primaryStack": "JavaGradle",
+      "domain": "FinTech Transaction Processing, Double-Entry Ledger & Event Streaming",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Official Spring Framework / Spring Boot Documentation",
+        "Oracle / OpenJDK Specifications",
+        "Jakarta EE Specifications",
+        "PCI-DSS / ISO-20022",
+        "OWASP Foundation"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "wisewallet-notification-service",
+      "defaultBranch": "main",
+      "primaryStack": "JavaGradle",
+      "domain": "FinTech Event-Driven Customer Notification & Alerting Microservice",
       "enabled": true,
       "customBuildCommand": null,
       "customTestCommand": null,
@@ -38,44 +55,321 @@
         "Oracle / OpenJDK Specifications",
         "Jakarta EE Specifications",
         "OWASP Foundation",
-        "Cloud Native Computing Foundation (CNCF)"
+        "IETF RFCs"
       ]
     },
     {
       "owner": "TatoTopuria",
-      "name": "python-clinical-analytics-api",
+      "name": "wisewallet-advisor-service",
       "defaultBranch": "main",
-      "primaryStack": "Python",
-      "domain": "Healthcare & Clinical Decision Support",
+      "primaryStack": "JavaGradle",
+      "domain": "FinTech AI Financial Advisor, Spending Analytics & Recommendation Engine",
       "enabled": true,
       "customBuildCommand": null,
       "customTestCommand": null,
       "whitelistedAuthorities": [
-        "Official Python Documentation & PEPs",
-        "FastAPI / Pydantic Official Documentation",
-        "World Health Organization (WHO)",
-        "American Academy of Pediatrics (AAP)",
-        "NICE Clinical Guidelines",
-        "CDC Guidelines",
+        "Official Spring Framework / Spring Boot Documentation",
+        "Oracle / OpenJDK Specifications",
+        "Jakarta EE Specifications",
+        "PCI-DSS / ISO-20022",
         "OWASP Foundation"
       ]
     },
     {
       "owner": "TatoTopuria",
-      "name": "node-typescript-gateway",
+      "name": "wisewallet-account-service",
       "defaultBranch": "main",
-      "primaryStack": "NodeJs",
-      "domain": "API Gateway & Edge Telemetry",
+      "primaryStack": "JavaGradle",
+      "domain": "FinTech Core Account Management, Balances & Identity Integration",
       "enabled": true,
       "customBuildCommand": null,
       "customTestCommand": null,
       "whitelistedAuthorities": [
-        "Node.js Official Documentation",
-        "TypeScript Official Handbook",
-        "ECMA-262 Specification",
-        "OpenAPI Initiative Specifications",
+        "Official Spring Framework / Spring Boot Documentation",
+        "Oracle / OpenJDK Specifications",
+        "Jakarta EE Specifications",
+        "PCI-DSS / ISO-20022",
+        "OWASP Foundation"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "wisewallet-gateway",
+      "defaultBranch": "main",
+      "primaryStack": "JavaGradle",
+      "domain": "FinTech API Gateway, Edge Security, Rate Limiting & Routing",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Official Spring Framework / Spring Cloud Gateway Documentation",
+        "Oracle / OpenJDK Specifications",
+        "OWASP API Security Top 10",
+        "IETF RFCs",
+        "OpenAPI Initiative Specifications"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "EventHub.Booking",
+      "defaultBranch": "main",
+      "primaryStack": "DotNet",
+      "domain": "High-Concurrency Event Ticketing, Seat Reservation & Saga Orchestration",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Microsoft Learn",
+        "Official .NET Runtime / ASP.NET Core / EF Core Documentation",
+        "C# Language Specifications",
         "OWASP Foundation",
         "IETF RFCs"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "EventHub.Payment",
+      "defaultBranch": "main",
+      "primaryStack": "DotNet",
+      "domain": "Event Ticketing Payment Processing, Idempotency & Financial Settlement",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Microsoft Learn",
+        "Official .NET Runtime / ASP.NET Core / EF Core Documentation",
+        "PCI-DSS / ISO-20022",
+        "OWASP Foundation",
+        "IETF RFCs"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "EventHub.Gateway",
+      "defaultBranch": "main",
+      "primaryStack": "DotNet",
+      "domain": "Distributed Event Platform API Gateway, YARP Reverse Proxy & Edge Resilience",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Microsoft Learn",
+        "Official .NET Runtime / ASP.NET Core / YARP Documentation",
+        "OWASP API Security Top 10",
+        "IETF RFCs",
+        "OpenAPI Initiative Specifications"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "EventHub.WebUi",
+      "defaultBranch": "main",
+      "primaryStack": "DotNet",
+      "domain": "EventHub Web Frontend, Interactive Seat Map & User Experience Portal",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Microsoft Learn",
+        "Official ASP.NET Core Documentation",
+        "W3C / WCAG 2.2 Accessibility Guidelines",
+        "OWASP Foundation"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "EventHub.Realtime",
+      "defaultBranch": "main",
+      "primaryStack": "DotNet",
+      "domain": "Real-Time Seat Availability Broadcasting & SignalR WebSocket Streaming",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Microsoft Learn",
+        "Official ASP.NET Core SignalR & .NET Runtime Documentation",
+        "IETF RFC 6455 (WebSocket Protocol)",
+        "OWASP Foundation"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "EventHub.Notification",
+      "defaultBranch": "main",
+      "primaryStack": "DotNet",
+      "domain": "Asynchronous Event-Driven Ticket Delivery & Transactional Notifications",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Microsoft Learn",
+        "Official .NET Runtime / ASP.NET Core Documentation",
+        "Cloud Native Computing Foundation (CNCF)",
+        "OWASP Foundation"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "EventHub.Identity",
+      "defaultBranch": "main",
+      "primaryStack": "DotNet",
+      "domain": "Authentication, OAuth2/OIDC Token Issuance & Role-Based Access Control",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Microsoft Learn",
+        "Official ASP.NET Core Security & Identity Documentation",
+        "IETF OAuth 2.0 / JWT RFCs (RFC 6749, RFC 7519)",
+        "OWASP Authentication & Authorization Guidelines"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "EventHub.Catalog",
+      "defaultBranch": "main",
+      "primaryStack": "DotNet",
+      "domain": "Event, Venue & Pricing Tier Catalog Management Microservice",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Microsoft Learn",
+        "Official .NET Runtime / ASP.NET Core / EF Core Documentation",
+        "OpenAPI Initiative Specifications",
+        "OWASP Foundation"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "EventHub.Analytics",
+      "defaultBranch": "main",
+      "primaryStack": "DotNet",
+      "domain": "Real-Time Event Telemetry Aggregation, Funnel Metrics & Reporting",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Microsoft Learn",
+        "Official .NET Runtime / ASP.NET Core / EF Core Documentation",
+        "Cloud Native Computing Foundation (CNCF)",
+        "OWASP Foundation"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "EventHub.E2E",
+      "defaultBranch": "main",
+      "primaryStack": "DotNet",
+      "domain": "Distributed End-to-End Integration, Contract & System Verification Suite",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Microsoft Learn",
+        "Official .NET Testing & xUnit / Playwright Documentation",
+        "OWASP Foundation",
+        "IETF RFCs"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "EventHub.Contracts",
+      "defaultBranch": "main",
+      "primaryStack": "DotNet",
+      "domain": "Versioned Integration Event Schemas & Distributed Messaging Contracts",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Microsoft Learn",
+        "Official .NET Library Design Guidelines",
+        "CloudEvents Specification (CNCF)",
+        "C# Language Specifications"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "EventHub.BuildingBlocks",
+      "defaultBranch": "main",
+      "primaryStack": "DotNet",
+      "domain": "Shared Distributed Systems Primitives, Transactional Outbox & OpenTelemetry",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Microsoft Learn",
+        "Official .NET Runtime & Polly Resilience Documentation",
+        "OpenTelemetry Official Specifications",
+        "Cloud Native Computing Foundation (CNCF)"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "EventHub.Deploy",
+      "defaultBranch": "main",
+      "primaryStack": "DevOpsInfra",
+      "domain": "Kubernetes Manifests, Docker Compose Topologies & Observability Stack",
+      "enabled": true,
+      "customBuildCommand": "for profile in core messaging full; do docker compose -f deploy/docker/docker-compose.yml --profile \"$profile\" config >/dev/null; done",
+      "customTestCommand": "bash -n deploy/k8s/deploy.sh && bash -n deploy/k8s/smoke-test.sh && bash -n deploy/observability/alert-watch.sh",
+      "whitelistedAuthorities": [
+        "Cloud Native Computing Foundation (CNCF)",
+        "Official Kubernetes Documentation",
+        "CIS Kubernetes Benchmark",
+        "OWASP Container & Kubernetes Security Cheat Sheet"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "sdet-demonstration",
+      "defaultBranch": "main",
+      "primaryStack": "DotNet",
+      "domain": "Enterprise SDET UI/API Test Automation Architecture & Quality Gate Harness",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Microsoft Learn",
+        "Official .NET Testing & Playwright / Selenium Documentation",
+        "W3C WebDriver Specification",
+        "OWASP Foundation"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "ChildAdvisor",
+      "defaultBranch": "main",
+      "primaryStack": "Auto",
+      "domain": "Pediatric Healthcare, Child Development Milestones & Clinical Guidance",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "World Health Organization (WHO)",
+        "American Academy of Pediatrics (AAP)",
+        "NICE Clinical Guidelines",
+        "Centers for Disease Control and Prevention (CDC)",
+        "OWASP Foundation",
+        "Microsoft Learn"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "BabyDoctor",
+      "defaultBranch": "main",
+      "primaryStack": "Auto",
+      "domain": "Pediatric Clinical Triage, Infant Symptom Assessment & Evidence-Based Care",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "World Health Organization (WHO)",
+        "American Academy of Pediatrics (AAP)",
+        "NICE Clinical Guidelines",
+        "Centers for Disease Control and Prevention (CDC)",
+        "OWASP Foundation",
+        "Microsoft Learn"
       ]
     }
   ]

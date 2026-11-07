@@ -149,5 +149,28 @@ public sealed class RotationLogicTests
             }
         }
     }
+
+    [Fact]
+    public async Task ProductionRepositoriesConfig_ContainsAllTwentyTwoTargetRepositories_AndRotatesCleanly()
+    {
+        string configPath = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory,
+            "..", "..", "..", "..", "..", "config", "repositories.json"));
+
+        HubConfig config = await HubConfig.LoadAsync(configPath);
+
+        Assert.Equal(22, config.Repositories.Count);
+        Assert.Equal("TatoTopuria/wisewallet-infra", config.Repositories[0].FullName);
+        Assert.Equal("TatoTopuria/EventHub.Booking", config.Repositories[6].FullName);
+        Assert.Equal("TatoTopuria/sdet-demonstration", config.Repositories[19].FullName);
+        Assert.Equal("TatoTopuria/ChildAdvisor", config.Repositories[20].FullName);
+        Assert.Equal("TatoTopuria/BabyDoctor", config.Repositories[21].FullName);
+
+        RotationState stateAtEnd = new() { LastProcessedIndex = 21 };
+        SelectedRepositoryTarget wrappedTarget = StateLedgerManager.SelectNextRepository(config.Repositories, stateAtEnd);
+
+        Assert.Equal(0, wrappedTarget.RotationIndex);
+        Assert.Equal("TatoTopuria/wisewallet-infra", wrappedTarget.Repository.FullName);
+    }
 }
 
