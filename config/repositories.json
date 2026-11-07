@@ -1,0 +1,83 @@
+{
+  "hubName": "AutonomousAgentHub",
+  "defaultModel": "gemini-2.5-flash",
+  "fallbackModel": "gemini-2.5-flash",
+  "interStageDelaySeconds": 6,
+  "minimumAuditScore": 85,
+  "maxSelfHealingAttempts": 3,
+  "workspaceRootPath": "/tmp/workspace",
+  "repositories": [
+    {
+      "owner": "TatoTopuria",
+      "name": "dotnet-clean-architecture-sample",
+      "defaultBranch": "main",
+      "primaryStack": "DotNet",
+      "domain": "Enterprise Microservices & FinTech",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Microsoft Learn",
+        "Official .NET Runtime / ASP.NET Core / EF Core Documentation",
+        "OWASP Foundation",
+        "IETF RFCs",
+        "PCI-DSS / ISO-20022"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "spring-boot-order-service",
+      "defaultBranch": "main",
+      "primaryStack": "JavaSpring",
+      "domain": "Distributed Commerce & Order Processing",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Official Spring Framework / Spring Boot Documentation",
+        "Oracle / OpenJDK Specifications",
+        "Jakarta EE Specifications",
+        "OWASP Foundation",
+        "Cloud Native Computing Foundation (CNCF)"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "python-clinical-analytics-api",
+      "defaultBranch": "main",
+      "primaryStack": "Python",
+      "domain": "Healthcare & Clinical Decision Support",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Official Python Documentation & PEPs",
+        "FastAPI / Pydantic Official Documentation",
+        "World Health Organization (WHO)",
+        "American Academy of Pediatrics (AAP)",
+        "NICE Clinical Guidelines",
+        "CDC Guidelines",
+        "OWASP Foundation"
+      ]
+    },
+    {
+      "owner": "TatoTopuria",
+      "name": "node-typescript-gateway",
+      "defaultBranch": "main",
+      "primaryStack": "NodeJs",
+      "domain": "API Gateway & Edge Telemetry",
+      "enabled": true,
+      "customBuildCommand": null,
+      "customTestCommand": null,
+      "whitelistedAuthorities": [
+        "Node.js Official Documentation",
+        "TypeScript Official Handbook",
+        "ECMA-262 Specification",
+        "OpenAPI Initiative Specifications",
+        "OWASP Foundation",
+        "IETF RFCs"
+      ]
+    }
+  ]
+}
+

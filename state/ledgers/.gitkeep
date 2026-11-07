@@ -1,0 +1,3 @@
+# Keeps state/ledgers directory tracked in Git.
+# Per-repository ledgers are persisted as {owner}__{repo}.json
+

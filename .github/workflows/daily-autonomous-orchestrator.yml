@@ -1,0 +1,96 @@
+name: Daily Autonomous Evolution Orchestrator
+
+on:
+  schedule:
+    # Runs daily at 06:00 UTC (10:00 AM Asia/Tbilisi)
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      target_repository:
+        description: 'Optional repository override (e.g., Owner/Repo) instead of Round-Robin queue'
+        required: false
+        default: ''
+        type: string
+      dry_run:
+        description: 'Run in read-only Dry-Run verification mode without opening a PR'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: autonomous-agent-hub-daily-run
+  cancel-in-progress: false
+
+jobs:
+  evolve-next-repository:
+    name: Execute 7-Stage Polyglot Autonomous Pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout Autonomous Agent Hub
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 8.0 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup Java JDK 21 (Temurin) with Maven & Gradle Cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Setup Node.js 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Restore, Build & Verify Hub Test Suite
+        run: |
+          dotnet restore AutonomousAgentHub.sln
+          dotnet build AutonomousAgentHub.sln --configuration Release --no-restore
+          dotnet test AutonomousAgentHub.sln --configuration Release --no-build --verbosity normal
+
+      - name: Execute 7-Stage Autonomous Evolution Pipeline
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GH_ORCHESTRATOR_PAT: ${{ secrets.GH_ORCHESTRATOR_PAT }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-2.5-flash' }}
+          TARGET_REPOSITORY: ${{ github.event.inputs.target_repository || '' }}
+        run: |
+          ARGS=()
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS+=("--dry-run")
+          fi
+          if [ -n "${TARGET_REPOSITORY}" ]; then
+            ARGS+=("--repo" "${TARGET_REPOSITORY}")
+          fi
+          dotnet run --project src/AutonomousAgentHub.Core/AutonomousAgentHub.Core.csproj --configuration Release --no-build -- "${ARGS[@]}"
+
+      - name: Persist Updated Rotation State & Repository Ledgers
+        if: always()
+        run: |
+          git config user.name "Autonomous Evolution Hub Bot"
+          git config user.email "autonomous-agent-hub@users.noreply.github.com"
+          git add state/rotation-state.json state/ledgers/
+          if git diff --staged --quiet; then
+            echo "No state or ledger modifications to commit."
+          else
+            git commit -m "chore(state): update daily rotation state and repository ledger [skip ci]"
+            git push origin HEAD:main
+          fi
+
