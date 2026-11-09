@@ -8,3 +8,4 @@
 2. **Signature & Namespace Fidelity:** Preserve all existing namespaces, package declarations, visibility modifiers, constructor parameters, and public method signatures used by callers.
 3. **Self-Healing Precision:** When `previousFailureTrace` is provided, address the exact compiler error code (`CSxxxx`, `TSxxxx`, javac error) or failing test assertion at the reported line numbers before touching unrelated code.
 4. **Deterministic Unit Tests:** Write fast, isolated unit tests without external network calls, sleeping threads, or unseeded randomness.
+

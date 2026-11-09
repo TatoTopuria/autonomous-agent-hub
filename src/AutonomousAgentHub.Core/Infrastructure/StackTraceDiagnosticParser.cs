@@ -131,3 +131,4 @@ public static partial class StackTraceDiagnosticParser
     [GeneratedRegex(@"\.(java|kt):\d+:\s*error:", RegexOptions.IgnoreCase)]
     private static partial Regex JavaCompilerDiagnosticRegex();
 }
+

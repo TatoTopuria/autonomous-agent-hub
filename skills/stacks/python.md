@@ -9,3 +9,4 @@
 2. **Data Validation:** Use Pydantic v2 models (`ConfigDict`, `@field_validator`, `Field(...)`) for strict boundary validation and clinical/analytics domain invariants.
 3. **Async Concurrency:** Never run blocking I/O or CPU-heavy tasks directly inside `async def` routes without offloading.
 4. **Testing:** Write deterministic `pytest` unit tests using fixtures and `pytest.raises` for boundary validation checks.
+

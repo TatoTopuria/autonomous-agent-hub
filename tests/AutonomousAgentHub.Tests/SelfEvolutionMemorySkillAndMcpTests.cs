@@ -382,3 +382,4 @@ public sealed class SelfEvolutionMemorySkillAndMcpTests
             Task.FromResult<PullRequestOutcomeStatus?>(outcome);
     }
 }
+

@@ -8,3 +8,4 @@
 2. **Entrypoint & Boundary Mapping:** Trace request/event flow from external entrypoints (Controllers, Minimal APIs, gRPC services, Message Consumers, FastAPI Routers, CLI commands, or Docker/K8s manifests) into Application Handlers/Services and Domain Aggregates.
 3. **Invariant Extraction:** Extract explicit domain invariants (e.g., non-negative monetary amounts, idempotency keys, optimistic concurrency tokens, null-safety guards, clinical dosage bounds, container non-root execution).
 4. **High-Leverage Candidate Selection:** Select up to 8 candidate source and test files where atomic improvements (cancellation propagation, query optimization, input validation hardening, resilience policies, or test coverage gaps) yield measurable engineering value without breaking public contracts.
+

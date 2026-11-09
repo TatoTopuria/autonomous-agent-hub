@@ -11,3 +11,4 @@
 ## Forbidden Anti-Patterns (`AP-xxx`)
 - **[AP-001 | All]** Never emit truncation placeholders (`// ... existing code ...`, `/* omitted */`, `// TODO`) in `FileMutation.updatedContent`. Always output complete, compilable files.
 - **[AP-002 | All]** Never cite unofficial blogs (Medium, Reddit, StackOverflow, dev.to, Baeldung, DZone) in Stage 2 `EvidenceBlocks`.
+

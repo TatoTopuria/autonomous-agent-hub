@@ -89,3 +89,4 @@ public sealed class ForbiddenAntiPatternRule
     [JsonPropertyName("createdAtUtc")]
     public DateTimeOffset CreatedAtUtc { get; init; } = DateTimeOffset.UtcNow;
 }
+

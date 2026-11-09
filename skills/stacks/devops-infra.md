@@ -10,3 +10,4 @@
 2. **Docker Compose & IaC Hygiene:** Ensure `docker compose config` validates cleanly across all profiles (`core`, `messaging`, `full`). Never hardcode plaintext secrets; use environment variable interpolation with safe defaults.
 3. **Observability & Dashboards:** Validate all Grafana JSON dashboards (`json.load`) and Prometheus/OpenTelemetry YAML configurations for syntactic and schema correctness.
 4. **Shell Scripts:** Enforce `set -euo pipefail` and verify syntax with `bash -n`.
+

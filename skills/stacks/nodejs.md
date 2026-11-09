@@ -10,3 +10,4 @@
 2. **Async & Error Handling:** Ensure all `Promise` chains and `async/await` handlers propagate errors cleanly and respect `AbortSignal` timeouts.
 3. **Input Validation:** Validate external payloads and environment variables at module boundaries.
 4. **Testing:** Add deterministic unit tests compatible with the repository's configured runner (`vitest`, `jest`, or `node --test`).
+

@@ -10,3 +10,4 @@
 2. **Persistence & Transactions:** Annotate read-only service/query methods with `@Transactional(readOnly = true)`. Prevent N+1 query cascades and enforce optimistic locking (`@Version`) on financial/inventory aggregates.
 3. **Validation & Financial Precision:** Use `java.math.BigDecimal` with explicit `RoundingMode` for monetary calculations (PCI-DSS / ISO-20022). Enforce Jakarta Bean Validation (`@NotNull`, `@Positive`, `@Valid`) at controller/service boundaries.
 4. **Testing:** Write deterministic JUnit 5 (`@Test`, `@ParameterizedTest`) and AssertJ assertions.
+

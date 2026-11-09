@@ -9,3 +9,4 @@
 3. **Business Invariant Preservation (0–25 pts):** Zero regressions to domain rules, public APIs, or existing functionality; zero truncated/deleted methods.
 4. **DevSecOps & Secret Hygiene (0–15 pts):** Zero hardcoded credentials, tokens, or PII; safe input validation and error handling.
 5. **Atomic Scope & Diff Cleanliness (0–15 pts):** Focused diff matching the Stage 3 plan without unrelated whitespace churn or placeholder comments.
+

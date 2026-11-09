@@ -10,3 +10,4 @@
    - *Signature Mismatch:* Align method call arguments (especially optional `CancellationToken ct = default` parameters) with existing callers.
    - *Test Assertion Mismatch:* Verify whether the test expectation or the edge-case guard contradicts existing domain invariants.
 3. **Hard Reset Guarantee:** If attempt 3 fails, execute `git reset --hard` and `git clean -fd` immediately and record the lesson in experiential memory.
+

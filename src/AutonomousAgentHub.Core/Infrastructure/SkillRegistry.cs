@@ -239,3 +239,4 @@ public sealed class SkillRegistry : ISkillRegistry
         return Path.Combine(AppContext.BaseDirectory, "skills");
     }
 }
+

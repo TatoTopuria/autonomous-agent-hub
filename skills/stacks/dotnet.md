@@ -9,3 +9,4 @@
 2. **Async & Cancellation:** Pass `CancellationToken cancellationToken = default` through all asynchronous call chains. Never block async code with `.Result` or `.Wait()`. Use `.ConfigureAwait(false)` in non-UI library/infrastructure methods.
 3. **Entity Framework Core:** Apply `.AsNoTracking()` on all read-only queries. Always use parameterized LINQ or `FromSqlInterpolated`.
 4. **Testing:** Use xUnit (`[Fact]`, `[Theory]`, `[InlineData]`) with deterministic in-memory fakes or temporary directories (`IDisposable`).
+
